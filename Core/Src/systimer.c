@@ -5,7 +5,7 @@
 
 #include <stdbool.h>
 
-extern TIM_HandleTypeDef htim2;
+#include "tim.h"
 
 volatile bool tim2_wait_us_done = false;
 
@@ -22,7 +22,7 @@ void systimer_wait_us(uint32_t us)
     }
 }
 
-void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef* htim)
 {
     if ((htim->Instance == TIM2) && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)) {
         HAL_TIM_OC_Stop_IT(htim, TIM_CHANNEL_1);
