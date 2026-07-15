@@ -41,12 +41,13 @@
 
 #include "bcc_peripheries.h"
 #include "afedrv_common.h" /* SPI, TPL macros*/
-#include "stm32h7xx_hal.h"
-#include "stm32h7xx_hal_gpio.h"
-#include "stm32h7xx_hal_spi.h"
-#include "stm32h7xx_hal_tim.h"
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_gpio.h"
+#include "stm32f4xx_hal_spi.h"
+#include "stm32f4xx_hal_tim.h"
 #include "util.h"
 #include "main.h"
+#include "spi.h"
 
 /*******************************************************************************
  * Definitions
@@ -148,6 +149,7 @@ HAL_StatusTypeDef BCC_MCU_TransferSpi_DMA_block(SPI_HandleTypeDef* hspi, const u
     // // D-Cache: clean TX buffer so DMA reads correct data
     // SCB_CleanDCache_by_Addr((uint32_t*)pTxData, Size);
 
+    HAL_GPIO_WritePin(SPI1_NSS_GPIO_Port, SPI1_NSS_Pin, GPIO_PIN_RESET);
     HAL_StatusTypeDef status = HAL_SPI_TransmitReceive_DMA(hspi, pTxData, pRxData, Size);
     if (status != HAL_OK) return status;
     uint32_t start = HAL_GetTick();
@@ -159,6 +161,7 @@ HAL_StatusTypeDef BCC_MCU_TransferSpi_DMA_block(SPI_HandleTypeDef* hspi, const u
         __WFI();
         // blocking
     }
+    HAL_GPIO_WritePin(SPI1_NSS_GPIO_Port, SPI1_NSS_Pin, GPIO_PIN_SET);
     // // D-Cache: invalidate RX to see fresh data
     // SCB_InvalidateDCache_by_Addr((uint32_t*)pRxData, Size);
     return status;
@@ -256,15 +259,10 @@ void BCC_MCU_Assert(const bool x)
     DEV_ASSERT(x);
 }
 
-static void BCC_set_nss_lvl(SPI_HandleTypeDef* hspi, uint32_t nss_lvl)
+static void BCC_set_nss_lvl(SPI_HandleTypeDef* hspi, uint8_t nss_lvl)
 {
     __HAL_SPI_DISABLE(hspi);
-
-    /* SPIx CFG2 Configuration */
-    WRITE_REG(hspi->Instance->CFG2, (hspi->Init.NSSPMode | hspi->Init.TIMode | nss_lvl | hspi->Init.NSS | hspi->Init.CLKPolarity | hspi->Init.CLKPhase | hspi->Init.FirstBit |
-                                     hspi->Init.Mode | hspi->Init.MasterInterDataIdleness | hspi->Init.Direction | hspi->Init.MasterSSIdleness | hspi->Init.IOSwap));
-
-    __HAL_SPI_ENABLE(hspi);
+    HAL_GPIO_WritePin(SPI1_NSS_GPIO_Port, SPI1_NSS_Pin, nss_lvl);
 }
 
 /*FUNCTION**********************************************************************
@@ -279,7 +277,7 @@ void BCC_MCU_WriteCsbPin(const uint8_t drvInstance, const uint8_t value)
 #if defined(MC3377X_USE_TPL)
     LPSPI_DRV_SetPcs(LPSPITPLTX, BCC_TX1_LPSPI_PCS, value ? LPSPI_ACTIVE_LOW : LPSPI_ACTIVE_HIGH);
 #elif defined(MC3377X_USE_SPI)
-    BCC_set_nss_lvl(&hspi1, value == 0 ? SPI_NSS_POLARITY_LOW : SPI_NSS_POLARITY_HIGH);
+    BCC_set_nss_lvl(&hspi1, value);
 #endif
 }
 

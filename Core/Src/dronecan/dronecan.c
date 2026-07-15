@@ -22,15 +22,15 @@
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
-#include "stm32h7xx_hal.h"
+#include "stm32f4xx_hal.h"
 #endif
-#include "stm32h7xx_nucleo.h"
 
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "can.h"
 #include "canard.h"
 #include "dronecan.h"
 #include "rte.h"
@@ -45,8 +45,6 @@
  */
 static CanardInstance canard;
 static uint8_t memory_pool[1024];
-
-static FDCAN_HandleTypeDef* g_hfdcan_ptr = NULL;
 
 /*
   in this example we will use dynamic node allocation if MY_NODE_ID is zero
@@ -71,9 +69,9 @@ static FDCAN_HandleTypeDef* g_hfdcan_ptr = NULL;
  */
 static struct
 {
-    float can_node;
-    float battery_index;
-    float telem_rate;
+  float can_node;
+  float battery_index;
+  float telem_rate;
 } settings;
 
 /*
@@ -83,11 +81,11 @@ static struct
  */
 static struct parameter
 {
-    char* name;
-    enum uavcan_protocol_param_Value_type_t type;
-    float* value;
-    float min_value;
-    float max_value;
+  char* name;
+  enum uavcan_protocol_param_Value_type_t type;
+  float* value;
+  float min_value;
+  float max_value;
 } parameters[] = {
     // add any parameters you want users to be able to set
     {"CAN_NODE", UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE, &settings.can_node, 0, 127},           // CAN node ID
@@ -109,7 +107,7 @@ static struct uavcan_protocol_NodeStatus node_status;
  */
 static uint32_t millis32(void)
 {
-    return HAL_GetTick();
+  return HAL_GetTick();
 }
 
 /*
@@ -118,7 +116,7 @@ static uint32_t millis32(void)
  */
 static uint64_t micros64(void)
 {
-    return millis32() * 1000U;
+  return millis32() * 1000U;
 }
 
 /*
@@ -126,8 +124,8 @@ static uint64_t micros64(void)
  */
 static void getUniqueID(uint8_t id[16])
 {
-    char* my_id = "xxxxxxxxxxxxxxxx";
-    memcpy(id, my_id, 16);
+  char* my_id = "xxxxxxxxxxxxxxxx";
+  memcpy(id, my_id, 16);
 }
 
 /*
@@ -135,7 +133,7 @@ static void getUniqueID(uint8_t id[16])
  */
 static void save_settings(void)
 {
-    TODO("[ERROR] save_settings");
+  TODO("[ERROR] save_settings");
 }
 
 /*
@@ -143,7 +141,7 @@ static void save_settings(void)
  */
 static void load_settings(void)
 {
-    TODO("[ERROR] load_settings");
+  TODO("[ERROR] load_settings");
 }
 
 /*
@@ -151,60 +149,60 @@ static void load_settings(void)
  */
 static void handle_param_GetSet(CanardInstance* ins, CanardRxTransfer* transfer)
 {
-    struct uavcan_protocol_param_GetSetRequest req;
-    if (uavcan_protocol_param_GetSetRequest_decode(transfer, &req)) {
-        return;
-    }
+  struct uavcan_protocol_param_GetSetRequest req;
+  if (uavcan_protocol_param_GetSetRequest_decode(transfer, &req)) {
+    return;
+  }
 
-    struct parameter* p = NULL;
-    if (req.name.len != 0) {
-        for (uint16_t i = 0; i < ARRAY_SIZE(parameters); i++) {
-            if (req.name.len == strlen(parameters[i].name) && strncmp((const char*)req.name.data, parameters[i].name, req.name.len) == 0) {
-                p = &parameters[i];
-                break;
-            }
-        }
-    } else if (req.index < ARRAY_SIZE(parameters)) {
-        p = &parameters[req.index];
+  struct parameter* p = NULL;
+  if (req.name.len != 0) {
+    for (uint16_t i = 0; i < ARRAY_SIZE(parameters); i++) {
+      if (req.name.len == strlen(parameters[i].name) && strncmp((const char*)req.name.data, parameters[i].name, req.name.len) == 0) {
+        p = &parameters[i];
+        break;
+      }
     }
-    if (p != NULL && req.name.len != 0 && req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_EMPTY) {
-        /*
+  } else if (req.index < ARRAY_SIZE(parameters)) {
+    p = &parameters[req.index];
+  }
+  if (p != NULL && req.name.len != 0 && req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_EMPTY) {
+    /*
           this is a parameter set command. The implementation can
           either choose to store the value in a persistent manner
           immediately or can instead store it in memory and save to permanent storage on a
          */
-        switch (p->type) {
-        case UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE: *p->value = req.value.integer_value; break;
-        case UAVCAN_PROTOCOL_PARAM_VALUE_BOOLEAN_VALUE: *p->value = req.value.boolean_value; break;
-        case UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE: *p->value = req.value.real_value; break;
-        default: return;
-        }
-        save_settings();
+    switch (p->type) {
+    case UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE: *p->value = req.value.integer_value; break;
+    case UAVCAN_PROTOCOL_PARAM_VALUE_BOOLEAN_VALUE: *p->value = req.value.boolean_value; break;
+    case UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE: *p->value = req.value.real_value; break;
+    default: return;
     }
+    save_settings();
+  }
 
-    /*
+  /*
       for both set and get we reply with the current value
      */
-    struct uavcan_protocol_param_GetSetResponse pkt;
-    memset(&pkt, 0, sizeof(pkt));
+  struct uavcan_protocol_param_GetSetResponse pkt;
+  memset(&pkt, 0, sizeof(pkt));
 
-    if (p != NULL) {
-        pkt.value.union_tag = p->type;
-        switch (p->type) {
-        case UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE: pkt.value.integer_value = *p->value; break;
-        case UAVCAN_PROTOCOL_PARAM_VALUE_BOOLEAN_VALUE: pkt.value.integer_value = *p->value; break;
-        case UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE: pkt.value.real_value = *p->value; break;
-        default: return;
-        }
-        pkt.name.len = strlen(p->name);
-        strcpy((char*)pkt.name.data, p->name);
+  if (p != NULL) {
+    pkt.value.union_tag = p->type;
+    switch (p->type) {
+    case UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE: pkt.value.integer_value = *p->value; break;
+    case UAVCAN_PROTOCOL_PARAM_VALUE_BOOLEAN_VALUE: pkt.value.integer_value = *p->value; break;
+    case UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE: pkt.value.real_value = *p->value; break;
+    default: return;
     }
+    pkt.name.len = strlen(p->name);
+    strcpy((char*)pkt.name.data, p->name);
+  }
 
-    uint8_t buffer[UAVCAN_PROTOCOL_PARAM_GETSET_RESPONSE_MAX_SIZE];
-    uint16_t total_size = uavcan_protocol_param_GetSetResponse_encode(&pkt, buffer);
+  uint8_t buffer[UAVCAN_PROTOCOL_PARAM_GETSET_RESPONSE_MAX_SIZE];
+  uint16_t total_size = uavcan_protocol_param_GetSetResponse_encode(&pkt, buffer);
 
-    canardRequestOrRespond(ins, transfer->source_node_id, UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE, UAVCAN_PROTOCOL_PARAM_GETSET_ID, &transfer->transfer_id, transfer->priority,
-                           CanardResponse, &buffer[0], total_size);
+  canardRequestOrRespond(ins, transfer->source_node_id, UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE, UAVCAN_PROTOCOL_PARAM_GETSET_ID, &transfer->transfer_id, transfer->priority,
+                         CanardResponse, &buffer[0], total_size);
 }
 
 /*
@@ -212,27 +210,27 @@ static void handle_param_GetSet(CanardInstance* ins, CanardRxTransfer* transfer)
  */
 static void handle_param_ExecuteOpcode(CanardInstance* ins, CanardRxTransfer* transfer)
 {
-    struct uavcan_protocol_param_ExecuteOpcodeRequest req;
-    if (uavcan_protocol_param_ExecuteOpcodeRequest_decode(transfer, &req)) {
-        return;
-    }
-    if (req.opcode == UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_REQUEST_OPCODE_ERASE) {
-        // here is where you would reset all parameters to defaults
-    }
-    if (req.opcode == UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_REQUEST_OPCODE_SAVE) {
-        // here is where you would save all the changed parameters to permanent storage
-    }
+  struct uavcan_protocol_param_ExecuteOpcodeRequest req;
+  if (uavcan_protocol_param_ExecuteOpcodeRequest_decode(transfer, &req)) {
+    return;
+  }
+  if (req.opcode == UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_REQUEST_OPCODE_ERASE) {
+    // here is where you would reset all parameters to defaults
+  }
+  if (req.opcode == UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_REQUEST_OPCODE_SAVE) {
+    // here is where you would save all the changed parameters to permanent storage
+  }
 
-    struct uavcan_protocol_param_ExecuteOpcodeResponse pkt;
-    memset(&pkt, 0, sizeof(pkt));
+  struct uavcan_protocol_param_ExecuteOpcodeResponse pkt;
+  memset(&pkt, 0, sizeof(pkt));
 
-    pkt.ok = true;
+  pkt.ok = true;
 
-    uint8_t buffer[UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_RESPONSE_MAX_SIZE];
-    uint16_t total_size = uavcan_protocol_param_ExecuteOpcodeResponse_encode(&pkt, buffer);
+  uint8_t buffer[UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_RESPONSE_MAX_SIZE];
+  uint16_t total_size = uavcan_protocol_param_ExecuteOpcodeResponse_encode(&pkt, buffer);
 
-    canardRequestOrRespond(ins, transfer->source_node_id, UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_SIGNATURE, UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_ID, &transfer->transfer_id,
-                           transfer->priority, CanardResponse, &buffer[0], total_size);
+  canardRequestOrRespond(ins, transfer->source_node_id, UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_SIGNATURE, UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_ID, &transfer->transfer_id,
+                         transfer->priority, CanardResponse, &buffer[0], total_size);
 }
 
 /*
@@ -240,11 +238,11 @@ static void handle_param_ExecuteOpcode(CanardInstance* ins, CanardRxTransfer* tr
  */
 static void handle_RestartNode(CanardInstance* ins, CanardRxTransfer* transfer)
 {
-    (void)ins;
-    (void)transfer;
-    // the battery node should reboot now!
-    printf("Rebooting!!!\n");
-    exit(0);
+  (void)ins;
+  (void)transfer;
+  // the battery node should reboot now!
+  printf("Rebooting!!!\n");
+  exit(0);
 }
 
 /*
@@ -252,35 +250,35 @@ static void handle_RestartNode(CanardInstance* ins, CanardRxTransfer* transfer)
 */
 static void handle_GetNodeInfo(CanardInstance* ins, CanardRxTransfer* transfer)
 {
-    printf("GetNodeInfo request from %d\n", transfer->source_node_id);
+  printf("GetNodeInfo request from %d\n", transfer->source_node_id);
 
-    uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
-    struct uavcan_protocol_GetNodeInfoResponse pkt;
+  uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
+  struct uavcan_protocol_GetNodeInfoResponse pkt;
 
-    memset(&pkt, 0, sizeof(pkt));
+  memset(&pkt, 0, sizeof(pkt));
 
-    node_status.uptime_sec = millis32() / 1000U;
-    pkt.status = node_status;
+  node_status.uptime_sec = millis32() / 1000U;
+  pkt.status = node_status;
 
-    // fill in your major and minor firmware version
-    pkt.software_version.major = 4;
-    pkt.software_version.minor = 20;
-    pkt.software_version.optional_field_flags = 0;
-    pkt.software_version.vcs_commit = 0;  // should put git hash in here
+  // fill in your major and minor firmware version
+  pkt.software_version.major = 4;
+  pkt.software_version.minor = 20;
+  pkt.software_version.optional_field_flags = 0;
+  pkt.software_version.vcs_commit = 0;  // should put git hash in here
 
-    // should fill in hardware version
-    pkt.hardware_version.major = 6;
-    pkt.hardware_version.minor = 9;
+  // should fill in hardware version
+  pkt.hardware_version.major = 6;
+  pkt.hardware_version.minor = 9;
 
-    getUniqueID(pkt.hardware_version.unique_id);
+  getUniqueID(pkt.hardware_version.unique_id);
 
-    strncpy((char*)pkt.name.data, "ExampleBatteryNode", sizeof(pkt.name.data));
-    pkt.name.len = strnlen((char*)pkt.name.data, sizeof(pkt.name.data));
+  strncpy((char*)pkt.name.data, "ExampleBatteryNode", sizeof(pkt.name.data));
+  pkt.name.len = strnlen((char*)pkt.name.data, sizeof(pkt.name.data));
 
-    uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer);
+  uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer);
 
-    canardRequestOrRespond(ins, transfer->source_node_id, UAVCAN_PROTOCOL_GETNODEINFO_SIGNATURE, UAVCAN_PROTOCOL_GETNODEINFO_ID, &transfer->transfer_id, transfer->priority,
-                           CanardResponse, &buffer[0], total_size);
+  canardRequestOrRespond(ins, transfer->source_node_id, UAVCAN_PROTOCOL_GETNODEINFO_SIGNATURE, UAVCAN_PROTOCOL_GETNODEINFO_ID, &transfer->transfer_id, transfer->priority,
+                         CanardResponse, &buffer[0], total_size);
 }
 
 /*
@@ -288,8 +286,8 @@ static void handle_GetNodeInfo(CanardInstance* ins, CanardRxTransfer* transfer)
  */
 static struct
 {
-    uint32_t send_next_node_id_allocation_request_at_ms;
-    uint32_t node_id_allocation_unique_id_offset;
+  uint32_t send_next_node_id_allocation_request_at_ms;
+  uint32_t node_id_allocation_unique_id_offset;
 } DNA;
 
 /*
@@ -297,50 +295,50 @@ static struct
  */
 static void handle_DNA_Allocation(CanardInstance* ins, CanardRxTransfer* transfer)
 {
-    if (canardGetLocalNodeID(&canard) != CANARD_BROADCAST_NODE_ID) {
-        // already allocated
-        return;
-    }
+  if (canardGetLocalNodeID(&canard) != CANARD_BROADCAST_NODE_ID) {
+    // already allocated
+    return;
+  }
 
-    // Rule C - updating the randomized time interval
-    DNA.send_next_node_id_allocation_request_at_ms =
-        millis32() + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS + (random() % UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_FOLLOWUP_DELAY_MS);
+  // Rule C - updating the randomized time interval
+  DNA.send_next_node_id_allocation_request_at_ms =
+      millis32() + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS + (random() % UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_FOLLOWUP_DELAY_MS);
 
-    if (transfer->source_node_id == CANARD_BROADCAST_NODE_ID) {
-        printf("Allocation request from another allocatee\n");
-        DNA.node_id_allocation_unique_id_offset = 0;
-        return;
-    }
+  if (transfer->source_node_id == CANARD_BROADCAST_NODE_ID) {
+    printf("Allocation request from another allocatee\n");
+    DNA.node_id_allocation_unique_id_offset = 0;
+    return;
+  }
 
-    // Copying the unique ID from the message
-    struct uavcan_protocol_dynamic_node_id_Allocation msg;
+  // Copying the unique ID from the message
+  struct uavcan_protocol_dynamic_node_id_Allocation msg;
 
-    uavcan_protocol_dynamic_node_id_Allocation_decode(transfer, &msg);
+  uavcan_protocol_dynamic_node_id_Allocation_decode(transfer, &msg);
 
-    // Obtaining the local unique ID
-    uint8_t my_unique_id[sizeof(msg.unique_id.data)];
-    getUniqueID(my_unique_id);
+  // Obtaining the local unique ID
+  uint8_t my_unique_id[sizeof(msg.unique_id.data)];
+  getUniqueID(my_unique_id);
 
-    // Matching the received UID against the local one
-    if (memcmp(msg.unique_id.data, my_unique_id, msg.unique_id.len) != 0) {
-        printf("Mismatching allocation response\n");
-        DNA.node_id_allocation_unique_id_offset = 0;
-        // No match, return
-        return;
-    }
+  // Matching the received UID against the local one
+  if (memcmp(msg.unique_id.data, my_unique_id, msg.unique_id.len) != 0) {
+    printf("Mismatching allocation response\n");
+    DNA.node_id_allocation_unique_id_offset = 0;
+    // No match, return
+    return;
+  }
 
-    if (msg.unique_id.len < sizeof(msg.unique_id.data)) {
-        // The allocator has confirmed part of unique ID, switching to
-        // the next stage and updating the timeout.
-        DNA.node_id_allocation_unique_id_offset = msg.unique_id.len;
-        DNA.send_next_node_id_allocation_request_at_ms -= UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS;
+  if (msg.unique_id.len < sizeof(msg.unique_id.data)) {
+    // The allocator has confirmed part of unique ID, switching to
+    // the next stage and updating the timeout.
+    DNA.node_id_allocation_unique_id_offset = msg.unique_id.len;
+    DNA.send_next_node_id_allocation_request_at_ms -= UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS;
 
-        printf("Matching allocation response: %d\n", msg.unique_id.len);
-    } else {
-        // Allocation complete - copying the allocated node ID from the message
-        canardSetLocalNodeID(ins, msg.node_id);
-        printf("Node ID allocated: %d\n", msg.node_id);
-    }
+    printf("Matching allocation response: %d\n", msg.unique_id.len);
+  } else {
+    // Allocation complete - copying the allocated node ID from the message
+    canardSetLocalNodeID(ins, msg.node_id);
+    printf("Node ID allocated: %d\n", msg.node_id);
+  }
 }
 
 /*
@@ -348,42 +346,42 @@ static void handle_DNA_Allocation(CanardInstance* ins, CanardRxTransfer* transfe
  */
 static void request_DNA()
 {
-    const uint32_t now = millis32();
-    static uint8_t node_id_allocation_transfer_id = 0;
+  const uint32_t now = millis32();
+  static uint8_t node_id_allocation_transfer_id = 0;
 
-    DNA.send_next_node_id_allocation_request_at_ms =
-        now + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS + (random() % UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_FOLLOWUP_DELAY_MS);
+  DNA.send_next_node_id_allocation_request_at_ms =
+      now + UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MIN_REQUEST_PERIOD_MS + (random() % UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_FOLLOWUP_DELAY_MS);
 
-    // Structure of the request is documented in the DSDL definition
-    // See http://uavcan.org/Specification/6._Application_level_functions/#dynamic-node-id-allocation
-    uint8_t allocation_request[CANARD_CAN_FRAME_MAX_DATA_LEN - 1];
-    allocation_request[0] = (uint8_t)(PREFERRED_NODE_ID << 1U);
+  // Structure of the request is documented in the DSDL definition
+  // See http://uavcan.org/Specification/6._Application_level_functions/#dynamic-node-id-allocation
+  uint8_t allocation_request[CANARD_CAN_FRAME_MAX_DATA_LEN - 1];
+  allocation_request[0] = (uint8_t)(PREFERRED_NODE_ID << 1U);
 
-    if (DNA.node_id_allocation_unique_id_offset == 0) {
-        allocation_request[0] |= 1;  // First part of unique ID
-    }
+  if (DNA.node_id_allocation_unique_id_offset == 0) {
+    allocation_request[0] |= 1;  // First part of unique ID
+  }
 
-    uint8_t my_unique_id[16];
-    getUniqueID(my_unique_id);
+  uint8_t my_unique_id[16];
+  getUniqueID(my_unique_id);
 
-    static const uint8_t MaxLenOfUniqueIDInRequest = 6;
-    uint8_t uid_size = (uint8_t)(16 - DNA.node_id_allocation_unique_id_offset);
+  static const uint8_t MaxLenOfUniqueIDInRequest = 6;
+  uint8_t uid_size = (uint8_t)(16 - DNA.node_id_allocation_unique_id_offset);
 
-    if (uid_size > MaxLenOfUniqueIDInRequest) {
-        uid_size = MaxLenOfUniqueIDInRequest;
-    }
+  if (uid_size > MaxLenOfUniqueIDInRequest) {
+    uid_size = MaxLenOfUniqueIDInRequest;
+  }
 
-    memmove(&allocation_request[1], &my_unique_id[DNA.node_id_allocation_unique_id_offset], uid_size);
+  memmove(&allocation_request[1], &my_unique_id[DNA.node_id_allocation_unique_id_offset], uid_size);
 
-    // Broadcasting the request
-    const int16_t bcast_res = canardBroadcast(&canard, UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_SIGNATURE, UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID,
-                                              &node_id_allocation_transfer_id, CANARD_TRANSFER_PRIORITY_LOW, &allocation_request[0], (uint16_t)(uid_size + 1));
-    if (bcast_res < 0) {
-        printf("Could not broadcast ID allocation req; error %d\n", bcast_res);
-    }
+  // Broadcasting the request
+  const int16_t bcast_res = canardBroadcast(&canard, UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_SIGNATURE, UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID,
+                                            &node_id_allocation_transfer_id, CANARD_TRANSFER_PRIORITY_LOW, &allocation_request[0], (uint16_t)(uid_size + 1));
+  if (bcast_res < 0) {
+    printf("Could not broadcast ID allocation req; error %d\n", bcast_res);
+  }
 
-    // Preparing for timeout; if response is received, this value will be updated from the callback.
-    DNA.node_id_allocation_unique_id_offset = 0;
+  // Preparing for timeout; if response is received, this value will be updated from the callback.
+  DNA.node_id_allocation_unique_id_offset = 0;
 }
 
 /*
@@ -391,37 +389,37 @@ static void request_DNA()
 */
 static void onTransferReceived(CanardInstance* ins, CanardRxTransfer* transfer)
 {
-    // switch on data type ID to pass to the right handler function
-    if (transfer->transfer_type == CanardTransferTypeRequest) {
-        // check if we want to handle a specific service request
-        switch (transfer->data_type_id) {
-        case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
-            handle_GetNodeInfo(ins, transfer);
-            break;
-        }
-        case UAVCAN_PROTOCOL_PARAM_GETSET_ID: {
-            handle_param_GetSet(ins, transfer);
-            break;
-        }
-        case UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_ID: {
-            handle_param_ExecuteOpcode(ins, transfer);
-            break;
-        }
-        case UAVCAN_PROTOCOL_RESTARTNODE_ID: {
-            handle_RestartNode(ins, transfer);
-            break;
-        }
-        }
+  // switch on data type ID to pass to the right handler function
+  if (transfer->transfer_type == CanardTransferTypeRequest) {
+    // check if we want to handle a specific service request
+    switch (transfer->data_type_id) {
+    case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
+      handle_GetNodeInfo(ins, transfer);
+      break;
     }
-    if (transfer->transfer_type == CanardTransferTypeBroadcast) {
-        // check if we want to handle a specific broadcast message
-        switch (transfer->data_type_id) {
-        case UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID: {
-            handle_DNA_Allocation(ins, transfer);
-            break;
-        }
-        }
+    case UAVCAN_PROTOCOL_PARAM_GETSET_ID: {
+      handle_param_GetSet(ins, transfer);
+      break;
     }
+    case UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_ID: {
+      handle_param_ExecuteOpcode(ins, transfer);
+      break;
+    }
+    case UAVCAN_PROTOCOL_RESTARTNODE_ID: {
+      handle_RestartNode(ins, transfer);
+      break;
+    }
+    }
+  }
+  if (transfer->transfer_type == CanardTransferTypeBroadcast) {
+    // check if we want to handle a specific broadcast message
+    switch (transfer->data_type_id) {
+    case UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID: {
+      handle_DNA_Allocation(ins, transfer);
+      break;
+    }
+    }
+  }
 }
 
 /*
@@ -435,40 +433,40 @@ static void onTransferReceived(CanardInstance* ins, CanardRxTransfer* transfer)
  */
 static bool shouldAcceptTransfer(const CanardInstance* ins, uint64_t* out_data_type_signature, uint16_t data_type_id, CanardTransferType transfer_type, uint8_t source_node_id)
 {
-    (void)ins;
-    (void)source_node_id;
-    if (transfer_type == CanardTransferTypeRequest) {
-        // check if we want to handle a specific service request
-        switch (data_type_id) {
-        case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
-            *out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_REQUEST_SIGNATURE;
-            return true;
-        }
-        case UAVCAN_PROTOCOL_PARAM_GETSET_ID: {
-            *out_data_type_signature = UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE;
-            return true;
-        }
-        case UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_ID: {
-            *out_data_type_signature = UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_SIGNATURE;
-            return true;
-        }
-        case UAVCAN_PROTOCOL_RESTARTNODE_ID: {
-            *out_data_type_signature = UAVCAN_PROTOCOL_RESTARTNODE_SIGNATURE;
-            return true;
-        }
-        }
+  (void)ins;
+  (void)source_node_id;
+  if (transfer_type == CanardTransferTypeRequest) {
+    // check if we want to handle a specific service request
+    switch (data_type_id) {
+    case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
+      *out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_REQUEST_SIGNATURE;
+      return true;
     }
-    if (transfer_type == CanardTransferTypeBroadcast) {
-        // see if we want to handle a specific broadcast packet
-        switch (data_type_id) {
-        case UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID: {
-            *out_data_type_signature = UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_SIGNATURE;
-            return true;
-        }
-        }
+    case UAVCAN_PROTOCOL_PARAM_GETSET_ID: {
+      *out_data_type_signature = UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE;
+      return true;
     }
-    // we don't want any other messages
-    return false;
+    case UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_ID: {
+      *out_data_type_signature = UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_SIGNATURE;
+      return true;
+    }
+    case UAVCAN_PROTOCOL_RESTARTNODE_ID: {
+      *out_data_type_signature = UAVCAN_PROTOCOL_RESTARTNODE_SIGNATURE;
+      return true;
+    }
+    }
+  }
+  if (transfer_type == CanardTransferTypeBroadcast) {
+    // see if we want to handle a specific broadcast packet
+    switch (data_type_id) {
+    case UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID: {
+      *out_data_type_signature = UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_SIGNATURE;
+      return true;
+    }
+    }
+  }
+  // we don't want any other messages
+  return false;
 }
 
 /*
@@ -477,23 +475,23 @@ static bool shouldAcceptTransfer(const CanardInstance* ins, uint64_t* out_data_t
  */
 static void send_NodeStatus(void)
 {
-    uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
+  uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
 
-    node_status.uptime_sec = micros64() / 1000000ULL;
-    node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
-    node_status.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
-    node_status.sub_mode = 0;
-    // put whatever you like in here for display in GUI
-    node_status.vendor_specific_status_code = 1234;
+  node_status.uptime_sec = micros64() / 1000000ULL;
+  node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
+  node_status.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
+  node_status.sub_mode = 0;
+  // put whatever you like in here for display in GUI
+  node_status.vendor_specific_status_code = 1234;
 
-    uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer);
+  uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer);
 
-    // we need a static variable for the transfer ID. This is
-    // incremeneted on each transfer, allowing for detection of packet
-    // loss
-    static uint8_t transfer_id;
+  // we need a static variable for the transfer ID. This is
+  // incremeneted on each transfer, allowing for detection of packet
+  // loss
+  static uint8_t transfer_id;
 
-    canardBroadcast(&canard, UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE, UAVCAN_PROTOCOL_NODESTATUS_ID, &transfer_id, CANARD_TRANSFER_PRIORITY_LOW, buffer, len);
+  canardBroadcast(&canard, UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE, UAVCAN_PROTOCOL_NODESTATUS_ID, &transfer_id, CANARD_TRANSFER_PRIORITY_LOW, buffer, len);
 }
 
 /*
@@ -501,17 +499,17 @@ static void send_NodeStatus(void)
 */
 void dronecan_node_cleanup_1000ms(void)
 {
-    uint64_t time_ms = HAL_GetTick();
-    uint64_t time_us = time_ms * 1000;
-    /*
+  uint64_t time_ms = HAL_GetTick();
+  uint64_t time_us = time_ms * 1000;
+  /*
       Purge transfers that are no longer transmitted. This can free up some memory
     */
-    canardCleanupStaleTransfers(&canard, time_us);
+  canardCleanupStaleTransfers(&canard, time_us);
 
-    /*
+  /*
       Transmit the node status message
     */
-    send_NodeStatus();
+  send_NodeStatus();
 }
 
 /*
@@ -519,80 +517,60 @@ void dronecan_node_cleanup_1000ms(void)
 */
 void dronecan_send_battery_info_1000ms(void)
 {
-    struct uavcan_equipment_power_BatteryInfo pkt;
-    memset(&pkt, 0, sizeof(pkt));
-    uint8_t buffer[UAVCAN_EQUIPMENT_POWER_BATTERYINFO_MAX_SIZE];
+  struct uavcan_equipment_power_BatteryInfo pkt;
+  memset(&pkt, 0, sizeof(pkt));
+  uint8_t buffer[UAVCAN_EQUIPMENT_POWER_BATTERYINFO_MAX_SIZE];
 
-    // make up some synthetic status data
-    pkt.temperature = rte_dronecan_battery.temperature_K;
-    pkt.voltage = rte_dronecan_battery.voltage;
-    pkt.current = rte_dronecan_battery.current;
+  // make up some synthetic status data
+  pkt.temperature = rte_dronecan_battery.temperature_K;
+  pkt.voltage = rte_dronecan_battery.voltage;
+  pkt.current = rte_dronecan_battery.current;
 
-    /*
+  /*
       Note!! fill in all remaining fields from the DSDL
      */
 
-    pkt.battery_id = settings.battery_index;
-    pkt.model_instance_id = 0;
-    pkt.model_name.len = strlen(BATTERY_MANUFACTURER_NAME);
-    strncpy((char*)pkt.model_name.data, BATTERY_MANUFACTURER_NAME, sizeof(pkt.model_name.data));
-    pkt.state_of_charge_pct = rte_dronecan_battery.remaining_capacity;
-    pkt.state_of_health_pct = 50;
-    pkt.full_charge_capacity_wh = rte_dronecan_battery.total_capacity_Ah * 22.2;
-    pkt.remaining_capacity_wh = rte_dronecan_battery.remaining_capacity / 100.0 * pkt.full_charge_capacity_wh;
+  pkt.battery_id = settings.battery_index;
+  pkt.model_instance_id = 0;
+  pkt.model_name.len = strlen(BATTERY_MANUFACTURER_NAME);
+  strncpy((char*)pkt.model_name.data, BATTERY_MANUFACTURER_NAME, sizeof(pkt.model_name.data));
+  pkt.state_of_charge_pct = rte_dronecan_battery.remaining_capacity;
+  pkt.state_of_health_pct = 50;
+  pkt.full_charge_capacity_wh = rte_dronecan_battery.total_capacity_Ah * 22.2;
+  pkt.remaining_capacity_wh = rte_dronecan_battery.remaining_capacity / 100.0 * pkt.full_charge_capacity_wh;
 
-    uint32_t len = uavcan_equipment_power_BatteryInfo_encode(&pkt, buffer);
+  uint32_t len = uavcan_equipment_power_BatteryInfo_encode(&pkt, buffer);
 
-    // we need a static variable for the transfer ID. This is
-    // incremeneted on each transfer, allowing for detection of packet
-    // loss
-    static uint8_t transfer_id;
+  // we need a static variable for the transfer ID. This is
+  // incremeneted on each transfer, allowing for detection of packet
+  // loss
+  static uint8_t transfer_id;
 
-    canardBroadcast(&canard, UAVCAN_EQUIPMENT_POWER_BATTERYINFO_SIGNATURE, UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID, &transfer_id, CANARD_TRANSFER_PRIORITY_LOW, buffer, len);
+  canardBroadcast(&canard, UAVCAN_EQUIPMENT_POWER_BATTERYINFO_SIGNATURE, UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID, &transfer_id, CANARD_TRANSFER_PRIORITY_LOW, buffer, len);
 }
 
-static uint32_t get_len_enum(uint32_t byte_len)
+static CAN_TxHeaderTypeDef conv_tx_frame(const CanardCANFrame* txf)
 {
+  CAN_TxHeaderTypeDef header = {0};
+  if (txf->id < 0x800) {
+    header.StdId = txf->id;
+    header.IDE = CAN_ID_STD;
+  } else {
+    header.ExtId = txf->id;
+    header.IDE = CAN_ID_EXT;
+  }
+  header.RTR = CAN_RTR_DATA;
+  header.DLC = txf->data_len;
 
-    if (byte_len <= 0) return FDCAN_DLC_BYTES_0;
-    if (byte_len <= 1) return FDCAN_DLC_BYTES_1;
-    if (byte_len <= 2) return FDCAN_DLC_BYTES_2;
-    if (byte_len <= 3) return FDCAN_DLC_BYTES_3;
-    if (byte_len <= 4) return FDCAN_DLC_BYTES_4;
-    if (byte_len <= 5) return FDCAN_DLC_BYTES_5;
-    if (byte_len <= 6) return FDCAN_DLC_BYTES_6;
-    if (byte_len <= 7) return FDCAN_DLC_BYTES_7;
-    if (byte_len <= 8) return FDCAN_DLC_BYTES_8;
-    if (byte_len <= 12) return FDCAN_DLC_BYTES_12;
-    if (byte_len <= 16) return FDCAN_DLC_BYTES_16;
-    if (byte_len <= 20) return FDCAN_DLC_BYTES_20;
-    if (byte_len <= 24) return FDCAN_DLC_BYTES_24;
-    if (byte_len <= 32) return FDCAN_DLC_BYTES_32;
-    if (byte_len <= 48) return FDCAN_DLC_BYTES_48;
-    if (byte_len <= 64) return FDCAN_DLC_BYTES_64;
-    UNREACHABLE("byte_len out of bound");
+  return header;
 }
 
-static FDCAN_TxHeaderTypeDef conv_tx_frame(const CanardCANFrame* txf)
+static void conv_rx_frame(const CAN_RxHeaderTypeDef* rx_header_ptr, CanardCANFrame* out_frame_ptr)
 {
-    return (FDCAN_TxHeaderTypeDef){
-        .Identifier = txf->id,
-        .IdType = txf->id < 0x800 ? FDCAN_STANDARD_ID : FDCAN_EXTENDED_ID,
-        .TxFrameType = FDCAN_DATA_FRAME,
-        .DataLength = txf->data_len,
-        .ErrorStateIndicator = FDCAN_ESI_ACTIVE,
-        .BitRateSwitch = FDCAN_BRS_OFF,
-        .FDFormat = FDCAN_CLASSIC_CAN,
-        .TxEventFifoControl = FDCAN_NO_TX_EVENTS,
-        .MessageMarker = 0,
-    };
-}
-
-static void conv_rx_frame(const FDCAN_RxHeaderTypeDef* rx_header_ptr, CanardCANFrame* out_frame_ptr)
-{
-    out_frame_ptr->id = rx_header_ptr->Identifier;
-    out_frame_ptr->data_len = rx_header_ptr->DataLength;
-    out_frame_ptr->iface_id = 0;
+  if (rx_header_ptr->IDE == CAN_ID_STD) out_frame_ptr->id = rx_header_ptr->StdId;
+  else out_frame_ptr->id = rx_header_ptr->ExtId;
+  out_frame_ptr->data_len = rx_header_ptr->DLC;
+  out_frame_ptr->iface_id = 0;
 }
 
 /*
@@ -600,72 +578,67 @@ static void conv_rx_frame(const FDCAN_RxHeaderTypeDef* rx_header_ptr, CanardCANF
 */
 static void processTxRxOnce(void)
 {
-    // Transmitting
-    for (const CanardCANFrame* txf = NULL; (txf = canardPeekTxQueue(&canard)) != NULL;) {
-        FDCAN_TxHeaderTypeDef tx_header = conv_tx_frame(txf);
-        switch (HAL_FDCAN_AddMessageToTxFifoQ(g_hfdcan_ptr, &tx_header, txf->data)) {
-        case HAL_OK: {
-            canardPopTxQueue(&canard);
-        } break;
-        case HAL_ERROR: {
-            UNREACHABLE("LUL");
-            canardPopTxQueue(&canard);
-        } break;
-        case HAL_BUSY:  // fallthrough
-        case HAL_TIMEOUT: {
-        } break;
-        }
-    }
-
-    CanardCANFrame rx_frame = {0};
-    FDCAN_RxHeaderTypeDef rx_header = {0};
-    switch (HAL_FDCAN_GetRxMessage(g_hfdcan_ptr, FDCAN_RX_FIFO0, &rx_header, rx_frame.data)) {
+  uint32_t tx_mailbox = 0;
+  // Transmitting
+  for (const CanardCANFrame* txf = NULL; (txf = canardPeekTxQueue(&canard)) != NULL;) {
+    CAN_TxHeaderTypeDef tx_header = conv_tx_frame(txf);
+    switch (HAL_CAN_AddTxMessage(&hcan1, &tx_header, txf->data, &tx_mailbox)) {
     case HAL_OK: {
-        // Receiving
-        const uint64_t timestamp = micros64();
-        conv_rx_frame(&rx_header, &rx_frame);
-        canardHandleRxFrame(&canard, &rx_frame, timestamp);
+      canardPopTxQueue(&canard);
     } break;
     case HAL_ERROR: {
-        if (g_hfdcan_ptr->ErrorCode & HAL_FDCAN_ERROR_FIFO_EMPTY) {
-            g_hfdcan_ptr->ErrorCode &= ~HAL_FDCAN_ERROR_FIFO_EMPTY;
-        } else {
-            UNREACHABLE("[ERROR] HAL_FDCAN_GetRxMessage");
-        }
+      UNREACHABLE("LUL");
+      canardPopTxQueue(&canard);
+    } break;
+    case HAL_BUSY:  // fallthrough
+    case HAL_TIMEOUT: {
+    } break;
+    }
+  }
+
+  CanardCANFrame rx_frame = {0};
+  CAN_RxHeaderTypeDef rx_header = {0};
+  if (HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) > 0) {
+    switch (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &rx_header, rx_frame.data)) {
+    case HAL_OK: {
+      // Receiving
+      const uint64_t timestamp = micros64();
+      conv_rx_frame(&rx_header, &rx_frame);
+      canardHandleRxFrame(&canard, &rx_frame, timestamp);
+    } break;
+    case HAL_ERROR: {
+      UNREACHABLE("[ERROR] HAL_FDCAN_GetRxMessage");
     } break;
     case HAL_BUSY:  // fallthrough
     case HAL_TIMEOUT: break;
     }
+  }
 }
 
-void dronecan_init(FDCAN_HandleTypeDef* lhfdcan_ptr)
+void dronecan_init(void)
 {
-    g_hfdcan_ptr = lhfdcan_ptr;
-
-    /*
-     Initializing the Libcanard instance.
-     */
-    canardInit(&canard, memory_pool, sizeof(memory_pool), onTransferReceived, shouldAcceptTransfer, NULL);
-    if (MY_NODE_ID > 0) {
-        canardSetLocalNodeID(&canard, MY_NODE_ID);
-    }
+  /* Initializing the Libcanard instance. */
+  canardInit(&canard, memory_pool, sizeof(memory_pool), onTransferReceived, shouldAcceptTransfer, NULL);
+  if (MY_NODE_ID > 0) {
+    canardSetLocalNodeID(&canard, MY_NODE_ID);
+  }
 }
 
 void dronecan_process_tx_rx_1ms(void)
 {
-    processTxRxOnce();
-    if (canardGetLocalNodeID(&canard) == CANARD_BROADCAST_NODE_ID) {
-        // waiting for DNA
-    }
+  processTxRxOnce();
+  if (canardGetLocalNodeID(&canard) == CANARD_BROADCAST_NODE_ID) {
+    // waiting for DNA
+  }
 
-    // see if we are still doing DNA
-    if (canardGetLocalNodeID(&canard) == CANARD_BROADCAST_NODE_ID) {
-        // we're still waiting for a DNA allocation of our node ID
-        if (millis32() > DNA.send_next_node_id_allocation_request_at_ms) {
-            request_DNA();
-        }
-        return;
+  // see if we are still doing DNA
+  if (canardGetLocalNodeID(&canard) == CANARD_BROADCAST_NODE_ID) {
+    // we're still waiting for a DNA allocation of our node ID
+    if (millis32() > DNA.send_next_node_id_allocation_request_at_ms) {
+      request_DNA();
     }
+    return;
+  }
 }
 
 /**
@@ -675,16 +648,14 @@ void dronecan_process_tx_rx_1ms(void)
   * @param  RxFifo0ITs indicates which Rx FIFO 0 interrupts are signaled.
   *         This parameter can be any combination of @arg FDCAN_Rx_Fifo0_Interrupts.
   */
-void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs)
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan)
 {
-    (void)hfdcan;
-    if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != 0U) {
-        // TODO: maybe handle `canardHandleRxFrame` here
-        //
-        // /* Retrieve Rx messages from RX FIFO0 */
-        // if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &rxHeader, rxData) != HAL_OK) {
-        //     Error_Handler();
-        // }
-        // }
-    }
+  (void)hcan;
+  // TODO: maybe handle `canardHandleRxFrame` here
+  //
+  // /* Retrieve Rx messages from RX FIFO0 */
+  // if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &rxHeader, rxData) != HAL_OK) {
+  //     Error_Handler();
+  // }
+  // }
 }

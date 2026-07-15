@@ -1,6 +1,6 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
-#include "stm32h7xx_hal.h"
+#include "stm32f4xx_hal.h"
 #endif
 
 #include <stdbool.h>
