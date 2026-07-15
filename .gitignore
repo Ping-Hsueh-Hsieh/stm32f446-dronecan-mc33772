@@ -1,0 +1,6 @@
+**/build/
+**/.cache/
+**/Debug/
+**/Release/
+**/.settings/
+**/dsdl_generated/
