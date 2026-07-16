@@ -153,8 +153,9 @@ HAL_StatusTypeDef BCC_MCU_TransferSpi_DMA_block(SPI_HandleTypeDef* hspi, const u
     HAL_StatusTypeDef status = HAL_SPI_TransmitReceive_DMA(hspi, pTxData, pRxData, Size);
     if (status != HAL_OK) return status;
     uint32_t start = HAL_GetTick();
+    uint32_t timeout_tick = timeout_ms * HAL_GetTickFreq();
     while (!spi_dma_txrx_done) {
-        if ((timeout_ms > 0) && (HAL_GetTick() - start) > timeout_ms) {
+        if ((timeout_ms > 0) && (HAL_GetTick() - start) > timeout_tick) {
             status = HAL_TIMEOUT;
             break;
         }

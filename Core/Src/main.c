@@ -122,7 +122,7 @@ int main(void)
     MX_SPI1_Init();
     MX_TIM2_Init();
     /* USER CODE BEGIN 2 */
-    // afedrv_init();
+    afedrv_init();
     dronecan_init();
     /* USER CODE END 2 */
 
@@ -151,7 +151,7 @@ int main(void)
 
         if (runnable_10ms_cnt > 0) runnable_10ms_cnt--;
         if (runnable_10ms_cnt == 0) {
-            // afedrv_runnable_10ms();
+            afedrv_runnable_10ms();
             runnable_10ms_cnt = 10;
         }
 
