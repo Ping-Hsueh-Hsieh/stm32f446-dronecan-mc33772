@@ -71,6 +71,7 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy
     ${LIBCANARD_INC}
     ${DRONECAN_INC}
+    ${LIBCANARD_INC}/drivers/stm32
 )
 
 # target_link_directories(${PROJECT_NAME}
