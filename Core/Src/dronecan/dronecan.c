@@ -552,12 +552,13 @@ void dronecan_send_battery_info_1000ms(void)
 
 static CAN_TxHeaderTypeDef conv_tx_frame(const CanardCANFrame* txf)
 {
+    uint32_t id = txf->id & CANARD_CAN_EXT_ID_MASK;
     CAN_TxHeaderTypeDef header = {0};
-    if (txf->id < 0x800) {
-        header.StdId = txf->id;
+    if (id < 0x800) {
+        header.StdId = id;
         header.IDE = CAN_ID_STD;
     } else {
-        header.ExtId = txf->id;
+        header.ExtId = id;
         header.IDE = CAN_ID_EXT;
     }
     header.RTR = CAN_RTR_DATA;
@@ -568,8 +569,11 @@ static CAN_TxHeaderTypeDef conv_tx_frame(const CanardCANFrame* txf)
 
 static void conv_rx_frame(const CAN_RxHeaderTypeDef* rx_header_ptr, CanardCANFrame* out_frame_ptr)
 {
-    if (rx_header_ptr->IDE == CAN_ID_STD) out_frame_ptr->id = rx_header_ptr->StdId;
-    else out_frame_ptr->id = rx_header_ptr->ExtId;
+    if (rx_header_ptr->IDE == CAN_ID_STD) {
+        out_frame_ptr->id = rx_header_ptr->StdId;
+    } else {
+        out_frame_ptr->id = rx_header_ptr->ExtId | CANARD_CAN_FRAME_EFF;
+    }
     out_frame_ptr->data_len = rx_header_ptr->DLC;
     out_frame_ptr->iface_id = 0;
 }
