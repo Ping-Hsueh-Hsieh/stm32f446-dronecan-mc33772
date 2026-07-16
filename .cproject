@@ -52,6 +52,7 @@
 									<listOptionValue builtIn="false" value="../Core/Src/dronecan"/>
 									<listOptionValue builtIn="false" value="../Core/Src/bcf"/>
 									<listOptionValue builtIn="false" value="../third-party/libcanard"/>
+                                    <listOptionValue builtIn="false" value="../third-party/libcanard/drivers/stm32"/>
 									<listOptionValue builtIn="false" value="../third-party/dsdl_generated/include"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.996842227" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
@@ -79,10 +80,10 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding=".github/|canard/|drivers/|examples/|tests/|.git|.gitignore|.gitmodules|.travis.yml|CMakeLists.txt|DESIGN.md|LICENSE|README.md|run_test.sh|show_data_type_info.py" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="third-party/libcanard"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="third-party/dsdl_generated/src/"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="third-party/dsdl_generated/src/"/>
+						<entry excluding=".github/|canard/|examples/|tests/|.git|.gitignore|.gitmodules|.travis.yml|CMakeLists.txt|DESIGN.md|LICENSE|README.md|run_test.sh|show_data_type_info.py|drivers/avr/|drivers/linux/|drivers/mcast/|drivers/nuttx/|drivers/socketcan/|drivers/libuavcan_vs_libcanard_arch.png|drivers/README.md" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="third-party/libcanard"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -135,6 +136,7 @@
 									<listOptionValue builtIn="false" value="../Core/Src/dronecan"/>
 									<listOptionValue builtIn="false" value="../Core/Src/bcf"/>
 									<listOptionValue builtIn="false" value="../third-party/libcanard"/>
+                                    <listOptionValue builtIn="false" value="../third-party/libcanard/drivers/stm32"/>
 									<listOptionValue builtIn="false" value="../third-party/dsdl_generated/include"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.290846724" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
@@ -162,7 +164,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding=".github/|canard/|drivers/|examples/|tests/|.git|.gitignore|.gitmodules|.travis.yml|CMakeLists.txt|DESIGN.md|LICENSE|README.md|run_test.sh|show_data_type_info.py" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="third-party/libcanard"/>
+						<entry excluding=".github/|canard/|examples/|tests/|.git|.gitignore|.gitmodules|.travis.yml|CMakeLists.txt|DESIGN.md|LICENSE|README.md|run_test.sh|show_data_type_info.py|drivers/avr/|drivers/linux/|drivers/mcast/|drivers/nuttx/|drivers/socketcan/|drivers/libuavcan_vs_libcanard_arch.png|drivers/README.md" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="third-party/libcanard"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="third-party/dsdl_generated/src/"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>

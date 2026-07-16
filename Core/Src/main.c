@@ -129,15 +129,6 @@ int main(void)
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
 
-    /* Activate Rx FIFO 0 new message notification */
-    if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) {
-        Error_Handler();
-    }
-
-    // if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
-    //     Error_Handler();
-    // }
-
     /* Start FDCAN controller */
     if (HAL_CAN_Start(&hcan1) != HAL_OK) {
         Error_Handler();

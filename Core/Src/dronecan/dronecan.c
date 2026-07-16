@@ -22,6 +22,7 @@
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#include "canard_stm32.h"
 #include "stm32f4xx_hal.h"
 #endif
 
@@ -578,41 +579,28 @@ static void conv_rx_frame(const CAN_RxHeaderTypeDef* rx_header_ptr, CanardCANFra
 */
 static void processTxRxOnce(void)
 {
-    uint32_t tx_mailbox = 0;
     // Transmitting
     for (const CanardCANFrame* txf = NULL; (txf = canardPeekTxQueue(&canard)) != NULL;) {
-        if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 0) break;
-        CAN_TxHeaderTypeDef tx_header = conv_tx_frame(txf);
-        switch (HAL_CAN_AddTxMessage(&hcan1, &tx_header, txf->data, &tx_mailbox)) {
-        case HAL_OK: {
+        const int16_t tx_res = canardSTM32Transmit(txf);
+        if (tx_res < 0) {    // Failure - drop the frame
             canardPopTxQueue(&canard);
-        } break;
-        case HAL_ERROR: {
-            UNREACHABLE("LUL");
+        } else if (tx_res > 0)    // Success - just drop the frame
+        {
             canardPopTxQueue(&canard);
-        } break;
-        case HAL_BUSY:    // fallthrough
-        case HAL_TIMEOUT: {
-        } break;
+        } else    // Timeout - just exit and try again later
+        {
+            break;
         }
     }
 
     CanardCANFrame rx_frame = {0};
-    CAN_RxHeaderTypeDef rx_header = {0};
-    if (HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) > 0) {
-        switch (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &rx_header, rx_frame.data)) {
-        case HAL_OK: {
-            // Receiving
-            const uint64_t timestamp = micros64();
-            conv_rx_frame(&rx_header, &rx_frame);
-            canardHandleRxFrame(&canard, &rx_frame, timestamp);
-        } break;
-        case HAL_ERROR: {
-            UNREACHABLE("[ERROR] HAL_FDCAN_GetRxMessage");
-        } break;
-        case HAL_BUSY:    // fallthrough
-        case HAL_TIMEOUT: break;
-        }
+    const uint64_t timestamp = micros64();
+    const int16_t rx_res = canardSTM32Receive(&rx_frame);
+    if (rx_res < 0) {
+        UNREACHABLE();
+    } else if (rx_res > 0)    // Success - process the frame
+    {
+        canardHandleRxFrame(&canard, &rx_frame, timestamp);
     }
 }
 
@@ -640,54 +628,4 @@ void dronecan_process_tx_rx_1ms(void)
         }
         return;
     }
-}
-
-
-void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan)
-{
-    uint32_t tx_mailbox;
-    const CanardCANFrame* txf = canardPeekTxQueue(&canard);
-    if (txf == NULL) return;
-    CAN_TxHeaderTypeDef tx_header = conv_tx_frame(txf);
-    switch (HAL_CAN_AddTxMessage(hcan, &tx_header, txf->data, &tx_mailbox)) {
-    case HAL_OK: {
-        canardPopTxQueue(&canard);
-    } break;
-    case HAL_ERROR: {
-        UNREACHABLE("LUL");
-        canardPopTxQueue(&canard);
-    } break;
-    case HAL_BUSY:    // fallthrough
-    case HAL_TIMEOUT: {
-    } break;
-    }
-}
-
-void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan)
-{
-    HAL_CAN_TxMailbox0CompleteCallback(hcan);
-}
-
-void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan)
-{
-    HAL_CAN_TxMailbox0CompleteCallback(hcan);
-}
-
-/**
-  * @brief  Rx FIFO 0 callback.
-  * @param  hfdcan pointer to an FDCAN_HandleTypeDef structure that contains
-  *         the configuration information for the specified FDCAN.
-  * @param  RxFifo0ITs indicates which Rx FIFO 0 interrupts are signaled.
-  *         This parameter can be any combination of @arg FDCAN_Rx_Fifo0_Interrupts.
-  */
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan)
-{
-    (void)hcan;
-    // TODO: maybe handle `canardHandleRxFrame` here
-    //
-    // /* Retrieve Rx messages from RX FIFO0 */
-    // if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &rxHeader, rxData) != HAL_OK) {
-    //     Error_Handler();
-    // }
-    // }
 }
