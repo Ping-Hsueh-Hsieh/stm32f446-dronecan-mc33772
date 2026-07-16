@@ -239,7 +239,7 @@ void SystemClock_Config(void)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == USER_BUTTON_Pin) {
-        HAL_GPIO_TogglePin(USER_BUTTON_GPIO_Port, USER_BUTTON_Pin);
+        HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
     }
 }
 
