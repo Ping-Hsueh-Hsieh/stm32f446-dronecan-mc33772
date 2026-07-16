@@ -55,10 +55,17 @@ static void bcf_update_bat_info_from_rte(void)
 
 static void bcf_update_bat_info_to_rte(void)
 {
+    bat_info.stack_V = 18.2;
+    bat_info.current_A = 58.420;
+    bat_info.bat_temp_degC = 50.0;
+    bat_info.soc = 0.69;
+    bat_info.est_cap_Ah = 31;
+    bat_info.consumed_Ah += bat_info.current_A * 0.1;
+
     rte_dronecan_battery.voltage = bat_info.stack_V;
     rte_dronecan_battery.current = bat_info.current_A;
     rte_dronecan_battery.temperature_K = 273.0 + bat_info.bat_temp_degC;
-    rte_dronecan_battery.remaining_capacity = bat_info.soc * 100;
+    rte_dronecan_battery.remaining_capacity = bat_info.soc * 100.0;
     rte_dronecan_battery.total_capacity_Ah = bat_info.est_cap_Ah;
     rte_dronecan_battery.consumed_Ah = bat_info.consumed_Ah;
 }
