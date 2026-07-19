@@ -5,8 +5,8 @@
 
 typedef struct afedrv_meas_res_
 {
-    uint32_t cc;
-    uint32_t isense_mA;
+    int32_t curr_from_cc_mA;
+    int32_t isense_mA;
     uint32_t stack_mV;
     uint32_t cell0_mV;
     uint32_t cell1_mV;

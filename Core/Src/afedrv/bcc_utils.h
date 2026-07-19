@@ -111,7 +111,7 @@
  * @return ISENSE current in [mA]; int32_t type.
  */
 #define BCC_GET_ISENSE_AMP(rShunt, iSense1, iSense2) ( \
-    (BCC_GET_ISENSE_RAW_SIGN(BCC_GET_ISENSE_RAW(iSense1, iSense2)) * 600) / (int32_t)(rShunt) \
+    (BCC_GET_ISENSE_RAW_SIGN(BCC_GET_ISENSE_RAW(iSense1, iSense2)) * MC33772C_V2RES_NV_PER_LSB) / (int32_t)(rShunt) \
 )
 
 /*!

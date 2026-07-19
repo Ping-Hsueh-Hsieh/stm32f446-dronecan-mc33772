@@ -64,7 +64,7 @@
                     is not populated on the board.
  * FRDM33772CSPEVB: ISENSE+ connected to J12-31, ISENSE- to J12-32. SHUNT resistor
                     is not populated on the board. */
-#define DEMO_RSHUNT             100000U
+#define SHUNT_UOHM             100000U
 
 #if !defined(MC33771C) && !defined(MC33772C)
     #error "Select used BCC device by defining MC33771C or MC33772C."

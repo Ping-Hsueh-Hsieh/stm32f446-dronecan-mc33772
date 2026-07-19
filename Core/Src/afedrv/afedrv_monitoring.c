@@ -33,6 +33,7 @@
 #include "afedrv_common.h" /* SPI, TPL macros */
 #include "bcc.h"
 #include "rte.h"
+#include "util.h"
 
 /*******************************************************************************
  * Definitions
@@ -230,17 +231,19 @@ static void printANxTemp(const char* regName, uint16_t regVal)
 #endif
 }
 
-static inline uint32_t afedrv_get_cc(uint16_t measurements[])
+static inline int32_t afedrv_get_curr_from_cc_mA(uint16_t measurements[])
 {
-    int32_t resVal; /* Converted value. */
-    resVal = BCC_GET_COULOMB_CNT(measurements[BCC_MSR_COULOMB_CNT1], measurements[BCC_MSR_COULOMB_CNT2]);
-    return (uint32_t)resVal;
+    int64_t cc = BCC_GET_COULOMB_CNT(measurements[BCC_MSR_COULOMB_CNT1], measurements[BCC_MSR_COULOMB_CNT2]);
+    int64_t sample = measurements[BCC_MSR_CC_NB_SAMPLES];
+    int64_t curr_mA = cc * MC33772C_V2RES_NV_PER_LSB / sample / SHUNT_UOHM;
+    CLAMP(curr_mA, INT32_MIN, INT32_MAX);
+    return curr_mA;
 }
 
-static inline uint32_t afedrv_get_isense_mA(uint16_t measurements[])
+static inline int32_t afedrv_get_isense_mA(uint16_t measurements[])
 {
     /* ISENSE value in mA. */
-    return BCC_GET_ISENSE_AMP(DEMO_RSHUNT, measurements[BCC_MSR_ISENSE1], measurements[BCC_MSR_ISENSE2]);
+    return BCC_GET_ISENSE_AMP(SHUNT_UOHM, measurements[BCC_MSR_ISENSE1], measurements[BCC_MSR_ISENSE2]);
 }
 
 static inline uint32_t afedrv_get_stack_mV(uint16_t measurements[])
@@ -258,7 +261,7 @@ static inline int16_t afedrv_conv_ntc_ddegC(uint32_t value)
 static void afedrv_update_meas_to_rte(uint16_t measurements[], uint8_t cid)
 {
     (void)cid;
-    rte_afedrv_meas_res.cc = afedrv_get_cc(measurements);
+    rte_afedrv_meas_res.curr_from_cc_mA = afedrv_get_curr_from_cc_mA(measurements);
     rte_afedrv_meas_res.isense_mA = afedrv_get_isense_mA(measurements);
     rte_afedrv_meas_res.stack_mV = afedrv_get_stack_mV(measurements);
 
@@ -317,7 +320,7 @@ static void printMeasResults(uint16_t measurements[], uint8_t cid)
         PRINTF("  | ISENSE\t| %d uV \t| 0x%08x\t|\r\n", resVal, rawVal);
 
         /* ISENSE value in mA. */
-        resVal = BCC_GET_ISENSE_AMP(DEMO_RSHUNT, measurements[BCC_MSR_ISENSE1], measurements[BCC_MSR_ISENSE2]);
+        resVal = BCC_GET_ISENSE_AMP(SHUNT_UOHM, measurements[BCC_MSR_ISENSE1], measurements[BCC_MSR_ISENSE2]);
         PRINTF("  | ISENSE\t| %d mA \t| 0x%08x\t|\r\n", resVal, rawVal);
     }
 

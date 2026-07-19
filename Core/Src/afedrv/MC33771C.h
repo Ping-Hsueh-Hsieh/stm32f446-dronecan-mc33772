@@ -45,6 +45,7 @@ extern "C"
 
 #include <stdint.h>
 
+#define MC33771C_V2RES_NV_PER_LSB (600)
 
 /* Overall register macros */
 #define MC33771C_MCU_NR_OF_REGISTERS (112U)
