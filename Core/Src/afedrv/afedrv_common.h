@@ -44,6 +44,8 @@
 
 #define MC3377X_DEBUG 1
 
+#define VSENSE_DIF_MAX_MV 150
+
 /* Used BCC device */
 // #define MC33771C    /* Define MC33771C if FRDM33771CSPEVB or RD33771CDSTEVB is used. */
 #define MC33772C    /* Define MC33772C if FRDM33772CSPEVB or KIT33772CTPLEVB is used. */
