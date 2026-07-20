@@ -265,12 +265,9 @@ static void afedrv_update_meas_to_rte(uint16_t measurements[], uint8_t cid)
     rte_afedrv_meas_res.isense_mA = afedrv_get_isense_mA(measurements);
     rte_afedrv_meas_res.stack_mV = afedrv_get_stack_mV(measurements);
 
-    rte_afedrv_meas_res.cell0_mV = BCC_GET_VOLT(measurements[BCC_MSR_CELL_VOLT1]) / 1000U;
-    rte_afedrv_meas_res.cell1_mV = BCC_GET_VOLT(measurements[BCC_MSR_CELL_VOLT2]) / 1000U;
-    rte_afedrv_meas_res.cell2_mV = BCC_GET_VOLT(measurements[BCC_MSR_CELL_VOLT3]) / 1000U;
-    rte_afedrv_meas_res.cell3_mV = BCC_GET_VOLT(measurements[BCC_MSR_CELL_VOLT4]) / 1000U;
-    rte_afedrv_meas_res.cell4_mV = BCC_GET_VOLT(measurements[BCC_MSR_CELL_VOLT5]) / 1000U;
-    rte_afedrv_meas_res.cell5_mV = BCC_GET_VOLT(measurements[BCC_MSR_CELL_VOLT6]) / 1000U;
+    for (uint8_t cell_id = 0; cell_id < AFEDRV_CELL_CNT; cell_id++) {
+        rte_afedrv_meas_res.cell_mV[cell_id] = BCC_GET_VOLT(measurements[BCC_MSR_CELL_VOLT1 + cell_id]) / 1000U;
+    }
 
     rte_afedrv_meas_res.an1_ddegC = afedrv_conv_ntc_ddegC(measurements[BCC_MSR_AN1]);
     rte_afedrv_meas_res.an3_ddegC = afedrv_conv_ntc_ddegC(measurements[BCC_MSR_AN3]);

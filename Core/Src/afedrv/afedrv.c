@@ -17,7 +17,7 @@ void afedrv_init(void)
     g_bccData.drvConfig.commMode = BCC_MODE_SPI;
     g_bccData.drvConfig.devicesCnt = 1U;
     g_bccData.drvConfig.device[0] = BCC_DEVICE_MC33772C;
-    g_bccData.drvConfig.cellCnt[0] = 6U;
+    g_bccData.drvConfig.cellCnt[0] = AFEDRV_CELL_CNT;
 
     /* Precalculate NTC look up table for fast temperature measurement. */
     ntc_config_t ntcConfig;

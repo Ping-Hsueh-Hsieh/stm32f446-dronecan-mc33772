@@ -556,13 +556,9 @@ void dronecan_send_battery_info_aux_1000ms(void)
     memset(&pkt, 0, sizeof(pkt));
     uint8_t buffer[ARDUPILOT_EQUIPMENT_POWER_BATTERYINFOAUX_MAX_SIZE];
 
-    pkt.voltage_cell.len = 6;
-    pkt.voltage_cell.data[0] = rte_dronecan_battery.cell0_V;
-    pkt.voltage_cell.data[1] = rte_dronecan_battery.cell1_V;
-    pkt.voltage_cell.data[2] = rte_dronecan_battery.cell2_V;
-    pkt.voltage_cell.data[3] = rte_dronecan_battery.cell3_V;
-    pkt.voltage_cell.data[4] = rte_dronecan_battery.cell4_V;
-    pkt.voltage_cell.data[5] = rte_dronecan_battery.cell5_V;
+    pkt.voltage_cell.len = AFEDRV_CELL_CNT;
+
+    memcpy(pkt.voltage_cell.data, rte_dronecan_battery.cell_V, sizeof(float) * AFEDRV_CELL_CNT);
 
     pkt.is_powering_off = false;
     pkt.timestamp = (struct uavcan_Timestamp){micros64()};
@@ -590,13 +586,8 @@ void dronecan_send_battery_cell_1000ms(void)
     memset(&pkt, 0, sizeof(pkt));
     uint8_t buffer[ARDUPILOT_EQUIPMENT_POWER_BATTERYCELLS_MAX_SIZE];
 
-    pkt.voltages.len = 6;
-    pkt.voltages.data[0] = rte_dronecan_battery.cell0_V;
-    pkt.voltages.data[1] = rte_dronecan_battery.cell1_V;
-    pkt.voltages.data[2] = rte_dronecan_battery.cell2_V;
-    pkt.voltages.data[3] = rte_dronecan_battery.cell3_V;
-    pkt.voltages.data[4] = rte_dronecan_battery.cell4_V;
-    pkt.voltages.data[5] = rte_dronecan_battery.cell5_V;
+    pkt.voltages.len = AFEDRV_CELL_CNT;
+    memcpy(pkt.voltages.data, rte_dronecan_battery.cell_V, sizeof(float) * AFEDRV_CELL_CNT);
 
     uint32_t len = ardupilot_equipment_power_BatteryCells_encode(&pkt, buffer);
 

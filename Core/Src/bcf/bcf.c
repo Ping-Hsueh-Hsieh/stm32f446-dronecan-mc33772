@@ -1,27 +1,13 @@
-#include "rte.h"
+#include "bcf.h"
+#include <string.h>
 #include "bcf_ekf.h"
+#include "rte.h"
 
-const struct bcf_bat_param_ {
-    float nominal_cap_Ah;
-} bat_param = {
+bcf_bat_info bat_info;
+bcf_bat_param bat_param = {
     .nominal_cap_Ah = 33.0f,
+    .min_cell_volt_V = 3.5f,
 };
-
-struct bcf_bat_info {
-    float cell0_V;
-    float cell1_V;
-    float cell2_V;
-    float cell3_V;
-    float cell4_V;
-    float cell5_V;
-    float current_A;
-    float stack_V;
-    float bat_temp_degC;
-    float soc;
-    float est_cap_Ah;
-    float consumed_Ah;
-} bat_info;
-
 
 static void bcf_update_bat_info_from_rte(void);
 static void bcf_update_bat_info_to_rte(void);
@@ -42,12 +28,9 @@ void bcf_100ms(void)
 
 static void bcf_update_bat_info_from_rte(void)
 {
-    bat_info.cell0_V = rte_afedrv_meas_res.cell0_mV / 1000.0f;
-    bat_info.cell1_V = rte_afedrv_meas_res.cell1_mV / 1000.0f;
-    bat_info.cell2_V = rte_afedrv_meas_res.cell2_mV / 1000.0f;
-    bat_info.cell3_V = rte_afedrv_meas_res.cell3_mV / 1000.0f;
-    bat_info.cell4_V = rte_afedrv_meas_res.cell4_mV / 1000.0f;
-    bat_info.cell5_V = rte_afedrv_meas_res.cell5_mV / 1000.0f;
+    for (uint8_t cell_id = 0; cell_id < AFEDRV_CELL_CNT; cell_id++) {
+        bat_info.cell_V[cell_id] = rte_afedrv_meas_res.cell_mV[cell_id] / 1000.0f;
+    }
     bat_info.current_A = rte_afedrv_meas_res.curr_from_cc_mA / 1000.0f;
     bat_info.stack_V = rte_afedrv_meas_res.stack_mV / 1000.0f;
     bat_info.bat_temp_degC = rte_afedrv_meas_res.an1_ddegC / 10.0f;
@@ -55,8 +38,8 @@ static void bcf_update_bat_info_from_rte(void)
 
 static void bcf_update_bat_info_to_rte(void)
 {
-    bat_info.soc = 0.67;
-    bat_info.est_cap_Ah = 31;
+    bat_info.soc = bcf_ekf_result.avg_soc;
+    bat_info.est_cap_Ah = bcf_ekf_result.est_cap_Ah;
     bat_info.consumed_Ah += bat_info.current_A * 0.1;
 
     rte_dronecan_battery.voltage = bat_info.stack_V;
@@ -66,11 +49,5 @@ static void bcf_update_bat_info_to_rte(void)
     rte_dronecan_battery.total_capacity_Ah = bat_info.est_cap_Ah;
     rte_dronecan_battery.consumed_Ah = bat_info.consumed_Ah;
 
-    rte_dronecan_battery.cell0_V = bat_info.cell0_V;
-    rte_dronecan_battery.cell1_V = bat_info.cell1_V;
-    rte_dronecan_battery.cell2_V = bat_info.cell2_V;
-    rte_dronecan_battery.cell3_V = bat_info.cell3_V;
-    rte_dronecan_battery.cell4_V = bat_info.cell4_V;
-    rte_dronecan_battery.cell5_V = bat_info.cell5_V;
+    memcpy(rte_dronecan_battery.cell_V, bat_info.cell_V, sizeof(float) * NUM_OF_CELLS_SER);
 }
-

@@ -2,18 +2,14 @@
 #define AFEDRV_TYPES_H_
 
 #include <stdint.h>
+#include "afedrv_common.h"
 
 typedef struct afedrv_meas_res_
 {
     int32_t curr_from_cc_mA;
     int32_t isense_mA;
     uint32_t stack_mV;
-    uint32_t cell0_mV;
-    uint32_t cell1_mV;
-    uint32_t cell2_mV;
-    uint32_t cell3_mV;
-    uint32_t cell4_mV;
-    uint32_t cell5_mV;
+    uint32_t cell_mV[AFEDRV_CELL_CNT];
 
     int16_t an1_ddegC;
     int16_t an3_ddegC;

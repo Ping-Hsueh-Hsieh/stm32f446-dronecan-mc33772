@@ -1,7 +1,9 @@
 #ifndef DRONECAN_TYPE_H_
 #define DRONECAN_TYPE_H_
 
-typedef struct dronecan_battery_state_
+#include "afedrv_common.h"
+
+typedef struct dronecanbattery_state_
 {
     float current;
     float voltage;
@@ -10,12 +12,7 @@ typedef struct dronecan_battery_state_
     float total_capacity_Ah;
     float consumed_Ah;
 
-    float cell0_V;
-    float cell1_V;
-    float cell2_V;
-    float cell3_V;
-    float cell4_V;
-    float cell5_V;
+    float cell_V[AFEDRV_CELL_CNT];
 
 } dronecan_battery_state;
 
