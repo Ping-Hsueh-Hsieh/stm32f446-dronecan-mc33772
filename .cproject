@@ -51,7 +51,6 @@
 									<listOptionValue builtIn="false" value="../Core/Src/afedrv"/>
 									<listOptionValue builtIn="false" value="../Core/Src/dronecan"/>
 									<listOptionValue builtIn="false" value="../Core/Src/bcf"/>
-									<listOptionValue builtIn="false" value="../Core/Src/bcf/ardu_lib/"/>
 									<listOptionValue builtIn="false" value="../third-party/libcanard"/>
 									<listOptionValue builtIn="false" value="../third-party/libcanard/drivers/stm32"/>
 									<listOptionValue builtIn="false" value="../third-party/dsdl_generated/include"/>
@@ -136,7 +135,6 @@
 									<listOptionValue builtIn="false" value="../Core/Src/afedrv"/>
 									<listOptionValue builtIn="false" value="../Core/Src/dronecan"/>
 									<listOptionValue builtIn="false" value="../Core/Src/bcf"/>
-									<listOptionValue builtIn="false" value="../Core/Src/bcf/ardu_lib/"/>
 									<listOptionValue builtIn="false" value="../third-party/libcanard"/>
 									<listOptionValue builtIn="false" value="../third-party/libcanard/drivers/stm32"/>
 									<listOptionValue builtIn="false" value="../third-party/dsdl_generated/include"/>

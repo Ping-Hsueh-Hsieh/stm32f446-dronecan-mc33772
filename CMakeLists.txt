@@ -64,7 +64,6 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/afedrv
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/dronecan
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/bcf
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/bcf/ardu_lib
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32F4xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Include
