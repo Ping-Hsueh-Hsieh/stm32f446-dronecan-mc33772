@@ -42,7 +42,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define ENABLE_CAN 0
+#define ENABLE_CAN 1
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -173,6 +173,7 @@ int main(void)
             toggle_led();
 #if ENABLE_CAN
             dronecan_send_battery_info_1000ms();
+            dronecan_send_battery_info_aux_1000ms();
             dronecan_node_cleanup_1000ms();
 #endif    // ENABLE_CAN
             runnable_1000ms_cnt = 1000;

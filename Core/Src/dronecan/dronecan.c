@@ -550,6 +550,64 @@ void dronecan_send_battery_info_1000ms(void)
     canardBroadcast(&canard, UAVCAN_EQUIPMENT_POWER_BATTERYINFO_SIGNATURE, UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID, &transfer_id, CANARD_TRANSFER_PRIORITY_LOW, buffer, len);
 }
 
+void dronecan_send_battery_info_aux_1000ms(void)
+{
+    struct ardupilot_equipment_power_BatteryInfoAux pkt;
+    memset(&pkt, 0, sizeof(pkt));
+    uint8_t buffer[ARDUPILOT_EQUIPMENT_POWER_BATTERYINFOAUX_MAX_SIZE];
+
+    pkt.voltage_cell.len = 6;
+    pkt.voltage_cell.data[0] = rte_dronecan_battery.cell0_V;
+    pkt.voltage_cell.data[1] = rte_dronecan_battery.cell1_V;
+    pkt.voltage_cell.data[2] = rte_dronecan_battery.cell2_V;
+    pkt.voltage_cell.data[3] = rte_dronecan_battery.cell3_V;
+    pkt.voltage_cell.data[4] = rte_dronecan_battery.cell4_V;
+    pkt.voltage_cell.data[5] = rte_dronecan_battery.cell5_V;
+
+    pkt.is_powering_off = false;
+    pkt.timestamp = (struct uavcan_Timestamp){micros64()};
+
+    /*
+      Note!! fill in all remaining fields from the DSDL
+     */
+
+    pkt.battery_id = settings.battery_index;
+
+    uint32_t len = ardupilot_equipment_power_BatteryInfoAux_encode(&pkt, buffer);
+
+    // we need a static variable for the transfer ID. This is
+    // incremeneted on each transfer, allowing for detection of packet
+    // loss
+    static uint8_t transfer_id;
+
+    canardBroadcast(&canard, ARDUPILOT_EQUIPMENT_POWER_BATTERYINFOAUX_SIGNATURE, ARDUPILOT_EQUIPMENT_POWER_BATTERYINFOAUX_ID, &transfer_id, CANARD_TRANSFER_PRIORITY_LOW, buffer,
+                    len);
+}
+
+void dronecan_send_battery_cell_1000ms(void)
+{
+    struct ardupilot_equipment_power_BatteryCells pkt;
+    memset(&pkt, 0, sizeof(pkt));
+    uint8_t buffer[ARDUPILOT_EQUIPMENT_POWER_BATTERYCELLS_MAX_SIZE];
+
+    pkt.voltages.len = 6;
+    pkt.voltages.data[0] = rte_dronecan_battery.cell0_V;
+    pkt.voltages.data[1] = rte_dronecan_battery.cell1_V;
+    pkt.voltages.data[2] = rte_dronecan_battery.cell2_V;
+    pkt.voltages.data[3] = rte_dronecan_battery.cell3_V;
+    pkt.voltages.data[4] = rte_dronecan_battery.cell4_V;
+    pkt.voltages.data[5] = rte_dronecan_battery.cell5_V;
+
+    uint32_t len = ardupilot_equipment_power_BatteryCells_encode(&pkt, buffer);
+
+    // we need a static variable for the transfer ID. This is
+    // incremeneted on each transfer, allowing for detection of packet
+    // loss
+    static uint8_t transfer_id;
+
+    canardBroadcast(&canard, ARDUPILOT_EQUIPMENT_POWER_BATTERYCELLS_SIGNATURE, ARDUPILOT_EQUIPMENT_POWER_BATTERYCELLS_ID, &transfer_id, CANARD_TRANSFER_PRIORITY_LOW, buffer, len);
+}
+
 static CAN_TxHeaderTypeDef conv_tx_frame(const CanardCANFrame* txf)
 {
     uint32_t id = txf->id & CANARD_CAN_EXT_ID_MASK;

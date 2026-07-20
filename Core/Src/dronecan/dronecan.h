@@ -7,6 +7,8 @@
 
 void dronecan_init(void);
 void dronecan_send_battery_info_1000ms(void);
+void dronecan_send_battery_cell_1000ms(void);
+void dronecan_send_battery_info_aux_1000ms(void);
 void dronecan_node_cleanup_1000ms(void);
 void dronecan_process_tx_rx_1ms(void);
 
