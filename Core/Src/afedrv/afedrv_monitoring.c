@@ -265,8 +265,8 @@ static void afedrv_update_meas_to_rte(uint16_t measurements[], uint8_t cid)
     rte_afedrv_meas_res.isense_mA = afedrv_get_isense_mA(measurements);
     rte_afedrv_meas_res.stack_mV = afedrv_get_stack_mV(measurements);
 
-    for (uint8_t cell_id = 0; cell_id < AFEDRV_CELL_CNT; cell_id++) {
-        rte_afedrv_meas_res.cell_mV[cell_id] = BCC_GET_VOLT(measurements[BCC_MSR_CELL_VOLT1 + cell_id]) / 1000U;
+    for (uint8_t cell_id = 0; cell_id < AFEDRV_CELL_CNT; cell_id++) {  // NOTE: BCC_MSR_CELL_VOLT1 > BCC_MSR_CELL_VOLT6, so "-", not "+"
+        rte_afedrv_meas_res.cell_mV[cell_id] = BCC_GET_VOLT(measurements[BCC_MSR_CELL_VOLT1 - cell_id]) / 1000U;
     }
 
     rte_afedrv_meas_res.an1_ddegC = afedrv_conv_ntc_ddegC(measurements[BCC_MSR_AN1]);
