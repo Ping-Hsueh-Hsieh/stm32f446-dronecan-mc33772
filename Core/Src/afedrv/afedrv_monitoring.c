@@ -411,6 +411,8 @@ void fillNtcTable(const ntc_config_t* const ntcConfig)
     }
 }
 
+static uint16_t afedrv_measurements[BCC_MEAS_CNT];
+
 /*FUNCTION**********************************************************************
  *
  * Function Name : doMeasurements
@@ -420,15 +422,14 @@ void fillNtcTable(const ntc_config_t* const ntcConfig)
  *END**************************************************************************/
 bcc_status_t doMeasurements(uint8_t cid)
 {
-    uint16_t measurements[BCC_MEAS_CNT];
     bcc_status_t error;
 
-    if ((error = getMeasurements(cid, measurements)) != BCC_STATUS_SUCCESS) {
+    if ((error = getMeasurements(cid, afedrv_measurements)) != BCC_STATUS_SUCCESS) {
         return error;
     }
 
-    printMeasResults(measurements, cid);
-    afedrv_update_meas_to_rte(measurements, cid);
+    printMeasResults(afedrv_measurements, cid);
+    afedrv_update_meas_to_rte(afedrv_measurements, cid);
 
     return BCC_STATUS_SUCCESS;
 }
