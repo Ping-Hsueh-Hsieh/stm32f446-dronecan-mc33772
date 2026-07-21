@@ -57,7 +57,7 @@
  * @param coulombCnt2 Content of register COULOMB_CNT2.
  */
 #define BCC_GET_COULOMB_CNT(coulombCnt1, coulombCnt2) \
-  ((int32_t)(((uint32_t)((coulombCnt1) & MC33771C_TH_COULOMB_CNT_MSB_TH_COULOMB_CNT_MSB_MASK) << 16U) | \
+  ((((uint32_t)((coulombCnt1) & MC33771C_TH_COULOMB_CNT_MSB_TH_COULOMB_CNT_MSB_MASK) << 16U) | \
              ((uint32_t)(coulombCnt2) & MC33771C_TH_COULOMB_CNT_LSB_TH_COULOMB_CNT_LSB_MASK)))
 
 /*!

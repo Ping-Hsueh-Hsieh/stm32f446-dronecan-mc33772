@@ -233,9 +233,17 @@ static void printANxTemp(const char* regName, uint16_t regVal)
 
 static inline int32_t afedrv_get_curr_from_cc_mA(uint16_t measurements[])
 {
-    int64_t cc = BCC_GET_COULOMB_CNT(measurements[BCC_MSR_COULOMB_CNT1], measurements[BCC_MSR_COULOMB_CNT2]);
     int64_t sample = measurements[BCC_MSR_CC_NB_SAMPLES];
-    int64_t curr_mA = cc * MC33772C_V2RES_NV_PER_LSB / sample / SHUNT_UOHM;
+    uint16_t msb = measurements[BCC_MSR_COULOMB_CNT1];
+    uint16_t lsb = measurements[BCC_MSR_COULOMB_CNT2];
+    int32_t cc_s32 = 0;
+    if (msb & 0x8000) {  // negitive
+        cc_s32 = INT32_MIN;
+    }
+    uint32_t msb_value_u32 = ((uint32_t)msb & (uint32_t)0x7FFFU) << 16U;
+    cc_s32 += msb_value_u32;
+    cc_s32 += (int32_t)lsb;
+    int64_t curr_mA = (int64_t)cc_s32 * MC33772C_V2RES_NV_PER_LSB / sample / SHUNT_UOHM;
     CLAMP(curr_mA, INT32_MIN, INT32_MAX);
     return curr_mA;
 }
