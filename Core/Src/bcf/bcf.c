@@ -4,10 +4,6 @@
 #include "rte.h"
 
 bcf_bat_info bat_info;
-bcf_bat_param bat_param = {
-    .nominal_cap_Ah = 33.0f,
-    .min_cell_volt_V = 3.5f,
-};
 
 static void bcf_update_bat_info_from_rte(void);
 static void bcf_update_bat_info_to_rte(void);

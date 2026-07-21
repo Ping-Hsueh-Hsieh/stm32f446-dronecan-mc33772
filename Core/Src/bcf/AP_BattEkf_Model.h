@@ -44,6 +44,7 @@ typedef struct {
     float Q_As;
     float Q_mAh;
     float Q_mAs;
+    float min_cell_volt_V;
 } BattEKF_Bat;
 
 static inline void batt_ekf_bv_create_default(BattEKF_Bv *bv)
@@ -141,6 +142,7 @@ static inline void batt_ekf_bat_create_default(BattEKF_Bat *bat)
     batt_ekf_bv_create_default(&bat->bv);
     bat->c_agi = 0.0f;
     batt_ekf_bat_update_capacities(bat);
+    bat->min_cell_volt_V = 3.5f;
 }
 
 static inline void batt_ekf_bat_update_c_agi(BattEKF_Bat *bat, float new_c_agi)

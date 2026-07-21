@@ -16,10 +16,4 @@ typedef struct {
     float consumed_Ah;
 } bcf_bat_info;
 
-typedef struct  {
-    float nominal_cap_Ah;
-    float min_cell_volt_V;
-} bcf_bat_param;
-
-
 #endif    // BCF_TYPES_H_

@@ -1,7 +1,7 @@
 #include "bcf_ekf.h"
 #include "AP_BattEkf.h"
 #include "bcf.h"
-#include "stm32f4xx_hal.h"
+#include "util.h"
 
 static BattEKF_Context ekf_ctx = {0};
 static BattEKF_Bat bat;
@@ -27,7 +27,7 @@ void bcf_ekf_runnable_100ms(void)
 
     float current_A = bat_info.current_A / NUM_OF_CELLS_PAR;
 
-    if (bat_info.stack_V <= bat_param.min_cell_volt_V * NUM_OF_CELLS_SER) return;
+    if (bat_info.stack_V <= bat.min_cell_volt_V * NUM_OF_CELLS_SER) return;
     if (bat_info.current_A == 0.0f && bat_info.stack_V == 0.0f) return;
 
     Mp_start(&mps.ekf);
