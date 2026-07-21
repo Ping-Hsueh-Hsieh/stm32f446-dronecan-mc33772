@@ -30,6 +30,7 @@ void bcf_ekf_runnable_100ms(void)
     if (bat_info.stack_V <= bat_param.min_cell_volt_V * NUM_OF_CELLS_SER) return;
     if (bat_info.current_A == 0.0f && bat_info.stack_V == 0.0f) return;
 
+    Mp_start(&mps.ekf);
     for (uint8_t cell_id = 0; cell_id < NUM_OF_CELLS_SER; cell_id++) {
         BattEKF_Sample sample = {
             .time = time_us,
@@ -40,6 +41,7 @@ void bcf_ekf_runnable_100ms(void)
         avg_est_soc += ekf_ctx.ekf_impls[cell_id].res.est_soc;
         bcf_ekf_result.soc[cell_id] = ekf_ctx.ekf_impls[cell_id].res.est_soc;
     }
+    Mp_end(&mps.ekf);
 
     avg_est_soc /= NUM_OF_CELLS_SER;
 
@@ -47,8 +49,12 @@ void bcf_ekf_runnable_100ms(void)
         batt_ekf_cagi_update_init(&ekf_ctx.c_agi_awtls, avg_est_soc, time_us);
         ekf_ctx.c_agi_first = 0;
     } else {
+    Mp_start(&mps.cagi);
         batt_ekf_cagi_awtls(&ekf_ctx.c_agi_awtls, time_us, avg_est_soc, current_A);
+    Mp_end(&mps.cagi);
+    Mp_start(&mps.rem_time);
         batt_ekf_rem_time_calc_update(&ekf_ctx.rem_calc, ekf_ctx.c_agi_awtls.Qhat, avg_est_soc, bat_info.stack_V, bat_info.current_A);
+    Mp_end(&mps.rem_time);
     }
 
     bcf_ekf_result.avg_soc = avg_est_soc;
