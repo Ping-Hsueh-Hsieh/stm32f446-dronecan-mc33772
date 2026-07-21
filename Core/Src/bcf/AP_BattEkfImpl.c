@@ -148,7 +148,6 @@ void batt_ekf_impl_init(BattEKF_Bat* pbat, BattEKF_EkfImpl *impl)
 
     impl->SigmaW = MC3377X_INOISE;
     impl->SigmaV = MC3377X_VVNOISE;
-    TODO("check CONV_NOM_SAMPLES value from measurements[BCC_MSR_CC_NB_SAMPLES]");
 }
 
 void batt_ekf_impl_process_sample(BattEKF_EkfImpl *impl, const BattEKF_Sample *sample)

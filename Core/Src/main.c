@@ -127,6 +127,7 @@ int main(void)
 #if ENABLE_CAN
     dronecan_init();
 #endif    // ENABLE_CAN
+    bcf_init();
     /* USER CODE END 2 */
 
     /* Infinite loop */

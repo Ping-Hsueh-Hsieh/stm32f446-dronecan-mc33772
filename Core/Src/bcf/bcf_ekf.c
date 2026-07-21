@@ -4,12 +4,12 @@
 #include "stm32f4xx_hal.h"
 
 static BattEKF_Context ekf_ctx = {0};
+static BattEKF_Bat bat;
 
 bcf_ekf_result_type bcf_ekf_result;
 
 void bcf_ekf_init(void)
 {
-    BattEKF_Bat bat;
     batt_ekf_bat_create_default(&bat);
     for (uint8_t cell_id = 0; cell_id < NUM_OF_CELLS_SER; cell_id++) {
         batt_ekf_impl_init(&bat, &ekf_ctx.ekf_impls[cell_id]);

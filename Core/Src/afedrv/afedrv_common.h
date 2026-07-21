@@ -49,8 +49,7 @@
 
 #define MC3377X_VVNOISE (4e-6f)
 #define MC3377X_VINOISE (3.01e-6f)
-#define CONV_PERIOD_MS (1000)
-#define CONV_PERIOD_US (CONV_PERIOD_MS * 1000)
+#define CONV_PERIOD_US (10000)  // NOTE: this should be the same as doMeasurements period
 #define MC3377X_TICONV_US (37.67)
 #define CONV_NOM_SAMPLES (uint32_t)((uint32_t)CONV_PERIOD_US / (uint32_t)MC3377X_TICONV_US)
 #define MC3377X_INOISE (MC3377X_VINOISE / (float)SHUNT_UOHM / sqrtf(CONV_NOM_SAMPLES))
