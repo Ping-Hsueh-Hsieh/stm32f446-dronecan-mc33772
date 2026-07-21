@@ -585,6 +585,10 @@ bcc_status_t BCC_Reg_Read(bcc_drv_config_t* const drvConfig,
     const bcc_cid_t cid, const uint8_t regAddr, const uint8_t regCnt,
     uint16_t* regVal);
 
+bcc_status_t BCC_Reg_Read_DMA(bcc_drv_config_t* const drvConfig,
+    const bcc_cid_t cid, const uint8_t regAddr, const uint8_t regCnt,
+    uint16_t* regVal);
+
 /*!
  * @brief This function writes a value to addressed register of selected battery
  * cell controller device.
@@ -1135,6 +1139,9 @@ extern void BCC_MCU_Assert(const bool x);
  */
 extern bcc_status_t BCC_MCU_TransferSpi(const uint8_t drvInstance,
     uint8_t txBuf[],uint8_t rxBuf[]);
+
+extern inline bool BCC_MCU_transfer_spi_dma_done(void);
+extern bcc_status_t BCC_MCU_TransferSpi_Dma(const uint8_t drvInstance, uint8_t* tx_bufs, uint8_t* rx_bufs, uint16_t msg_cnt);
 
 /*!
  * @brief This function sends and receives data to MC33664 via TX and RX SPI

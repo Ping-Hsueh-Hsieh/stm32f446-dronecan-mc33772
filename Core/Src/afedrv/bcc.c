@@ -39,6 +39,7 @@
  ******************************************************************************/
 
 #include "bcc_communication.h"
+#include "util.h"
 
 /*******************************************************************************
  * Definitions
@@ -754,6 +755,22 @@ bcc_status_t BCC_Reg_Read(bcc_drv_config_t* const drvConfig,
     }
 }
 
+bcc_status_t BCC_Reg_Read_DMA(bcc_drv_config_t* const drvConfig,
+    const bcc_cid_t cid, const uint8_t regAddr, const uint8_t regCnt,
+    uint16_t* regVal)
+{
+    BCC_MCU_Assert(drvConfig != NULL);
+
+    if (drvConfig->commMode == BCC_MODE_SPI)
+    {
+        return BCC_Reg_ReadSpi_DMA(drvConfig, cid, regAddr, regCnt, regVal);
+    }
+    else
+    {
+        UNREACHABLE("TPL not SUPPORTED");
+    }
+}
+
 /*FUNCTION**********************************************************************
  *
  * Function Name : BCC_Reg_Write
@@ -995,8 +1012,12 @@ bcc_status_t BCC_Meas_GetRawValues(bcc_drv_config_t* const drvConfig,
     }
     else
     {
-        status = BCC_Reg_Read(drvConfig, cid, MC33772C_CC_NB_SAMPLES_OFFSET,
+        // status = BCC_Reg_Read(drvConfig, cid, MC33772C_CC_NB_SAMPLES_OFFSET,
+        //                      (MC33772C_MEAS_STACK_OFFSET - MC33772C_CC_NB_SAMPLES_OFFSET) + 1, measurements);
+        status = BCC_Reg_Read_DMA(drvConfig, cid, MC33772C_CC_NB_SAMPLES_OFFSET,
                              (MC33772C_MEAS_STACK_OFFSET - MC33772C_CC_NB_SAMPLES_OFFSET) + 1, measurements);
+
+        TODO("make sure BCC_Reg_Read_DMA can read message correctly");
         if (status != BCC_STATUS_SUCCESS)
         {
             return status;

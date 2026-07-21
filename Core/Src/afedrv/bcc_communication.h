@@ -95,6 +95,10 @@ bcc_status_t BCC_Reg_ReadSpi(bcc_drv_config_t* const drvConfig,
     const bcc_cid_t cid, uint8_t regAddr, const uint8_t regCnt,
     uint16_t* regVal);
 
+bcc_status_t BCC_Reg_ReadSpi_DMA(bcc_drv_config_t* const drvConfig,
+    const bcc_cid_t cid, uint8_t regAddr, const uint8_t regCnt,
+    uint16_t* regVal);
+
 /*!
  * @brief This function writes a value to addressed register of the BCC device.
  * Intended for TPL mode only.

@@ -524,6 +524,64 @@ bcc_status_t BCC_Reg_ReadSpi(bcc_drv_config_t* const drvConfig,
     return BCC_STATUS_SUCCESS;
 }
 
+#include "util.h"
+#define BCC_MAX_NRT (0x7FU)
+#define BCC_MAX_FRAME (40U)
+#define BCC_ADDITIONAL_NOP_READ_FRAME 1
+uint8_t tx_bufs[BCC_MAX_FRAME * BCC_MSG_SIZE] = {0};
+uint8_t rx_bufs[BCC_MAX_FRAME * BCC_MSG_SIZE] = {0};
+
+bcc_status_t BCC_Reg_ReadSpi_DMA(bcc_drv_config_t* const drvConfig,
+    const bcc_cid_t cid, uint8_t regAddr, const uint8_t regCnt,
+    uint16_t* regVal)
+{
+    uint8_t regIdx;              /* Index of a received register. */
+    bcc_status_t status;
+    uint16_t msg_cnt = regCnt + BCC_ADDITIONAL_NOP_READ_FRAME;
+
+    BCC_MCU_Assert(drvConfig != NULL);
+    BCC_MCU_Assert(regVal != NULL);
+
+    if (((uint8_t)cid > drvConfig->devicesCnt) || (regAddr > BCC_MAX_REG_ADDR) ||
+        (regCnt == 0U) || ((regAddr + regCnt - 1U) > BCC_MAX_REG_ADDR)  || (regCnt > BCC_MAX_NRT) || (msg_cnt > BCC_MAX_FRAME))
+    {
+        return BCC_STATUS_PARAM_RANGE;
+    }
+
+    // create batch request frame
+    BCC_PackFrame(regCnt, regAddr, cid, BCC_CMD_READ, &tx_bufs[0]);
+    for (uint16_t reg_ind = 1; reg_ind < msg_cnt; reg_ind++)
+    {
+        BCC_PackFrame(0x0000U, 0x00U, cid, BCC_CMD_NOOP, &tx_bufs[reg_ind * BCC_MSG_SIZE]);
+    }
+
+    status = BCC_MCU_TransferSpi_Dma(drvConfig->drvInstance, tx_bufs, rx_bufs, msg_cnt);
+    if (status != BCC_STATUS_SUCCESS) return status;
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// fetch function
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    for (uint16_t msg_id = 0; msg_id < msg_cnt; msg_id++) {
+        uint8_t * rx_buf = &rx_bufs[msg_id * BCC_MSG_SIZE];
+        if ((status = BCC_CheckCRC(rx_buf)) != BCC_STATUS_SUCCESS) {
+            UNREACHABLE();
+            return status;
+        }
+        if ((status = BCC_CheckMsgCntr(drvConfig, cid, rx_buf)) != BCC_STATUS_SUCCESS){
+            UNREACHABLE();
+            return status;
+        }
+        if (BCC_IS_NULL_RESP(rx_buf)) {
+            UNREACHABLE();
+            return BCC_STATUS_COM_NULL;
+        }
+        *regVal++ = BCC_GET_MSG_DATA(rx_buf);
+    }
+
+    return BCC_STATUS_SUCCESS;
+}
+
 /*FUNCTION**********************************************************************
  *
  * Function Name : BCC_Reg_WriteTpl

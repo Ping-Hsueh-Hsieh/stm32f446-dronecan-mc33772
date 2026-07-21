@@ -101,6 +101,9 @@
 
 static bool s_timeoutExpired;
 volatile bool spi_dma_txrx_done = false;
+volatile uint16_t remaining_msg_cnt = 0;
+uint8_t *dma_tx_buf;
+uint8_t *dma_rx_buf;
 
 /*******************************************************************************
  * IRQ handlers
@@ -109,7 +112,17 @@ volatile bool spi_dma_txrx_done = false;
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef* hspi) /* Derogation MISRAC2012-Rule-8.13 */
 {
     (void)hspi;
+    HAL_GPIO_WritePin(SPI1_NSS_GPIO_Port, SPI1_NSS_Pin, GPIO_PIN_SET);
     spi_dma_txrx_done = true;
+
+    if (remaining_msg_cnt > 0) {
+        spi_dma_txrx_done = false;
+        HAL_GPIO_WritePin(SPI1_NSS_GPIO_Port, SPI1_NSS_Pin, GPIO_PIN_RESET);
+        remaining_msg_cnt--;
+        dma_tx_buf += BCC_MSG_SIZE;
+        dma_rx_buf += BCC_MSG_SIZE;
+        HAL_SPI_TransmitReceive_DMA(hspi, dma_tx_buf, dma_rx_buf, BCC_MSG_SIZE);
+    }
 }
 
 /*******************************************************************************
@@ -168,6 +181,16 @@ HAL_StatusTypeDef BCC_MCU_TransferSpi_DMA_block(SPI_HandleTypeDef* hspi, const u
     return status;
 }
 
+HAL_StatusTypeDef BCC_MCU_TransferSpi_DMA_impl(SPI_HandleTypeDef* hspi, const uint8_t* pTxData, uint8_t* pRxData, uint16_t msg_cnt)
+{
+    spi_dma_txrx_done = false;
+    HAL_GPIO_WritePin(SPI1_NSS_GPIO_Port, SPI1_NSS_Pin, GPIO_PIN_RESET);
+    remaining_msg_cnt = msg_cnt - 1;
+    dma_tx_buf = pTxData;
+    dma_rx_buf = pRxData;
+    return HAL_SPI_TransmitReceive_DMA(hspi, pTxData, pRxData, BCC_MSG_SIZE);
+}
+
 /*FUNCTION**********************************************************************
  *
  * Function Name : BCC_MCU_TransferSpi
@@ -190,6 +213,37 @@ bcc_status_t BCC_MCU_TransferSpi(const uint8_t drvInstance, uint8_t txBuf[], uin
     case HAL_TIMEOUT: return BCC_STATUS_COM_TIMEOUT;
     default: UNREACHABLE("BCC_MCU_TransferSpi");
     }
+
+#elif defined(MC3377X_USE_TPL)
+    return BCC_STATUS_SPI_FAIL;
+#endif
+}
+
+inline bool BCC_MCU_transfer_spi_dma_done(void)
+{
+    return spi_dma_txrx_done;
+}
+
+bcc_status_t BCC_MCU_TransferSpi_Dma(const uint8_t drvInstance, uint8_t* tx_bufs, uint8_t* rx_bufs, uint16_t msg_cnt)
+{
+    (void)drvInstance;
+#if defined(MC3377X_USE_SPI)
+
+    DEV_ASSERT(tx_bufs != NULL);
+    DEV_ASSERT(rx_bufs != NULL);
+
+    switch (BCC_MCU_TransferSpi_DMA_impl(&hspi1, tx_bufs, rx_bufs, msg_cnt)) {
+    case HAL_OK: return BCC_STATUS_SUCCESS;
+    case HAL_ERROR: return BCC_STATUS_SPI_FAIL;
+    case HAL_BUSY: return BCC_STATUS_SPI_FAIL;
+    case HAL_TIMEOUT: return BCC_STATUS_COM_TIMEOUT;
+    default: UNREACHABLE("BCC_MCU_TransferSpi_DMA_impl");
+    }
+
+    while (!spi_dma_txrx_done) {
+        __WFI();
+    }
+    HAL_GPIO_WritePin(SPI1_NSS_GPIO_Port, SPI1_NSS_Pin, GPIO_PIN_SET);
 
 #elif defined(MC3377X_USE_TPL)
     return BCC_STATUS_SPI_FAIL;
