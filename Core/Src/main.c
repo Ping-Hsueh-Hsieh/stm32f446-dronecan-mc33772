@@ -42,7 +42,9 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define ENABLE_CAN 1
+#define ENABLE_CAN 0
+#define ENABLE_AFE 0
+#define ENABLE_BCF 0
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -123,11 +125,15 @@ int main(void)
     MX_TIM2_Init();
     MX_SPI1_Init();
     /* USER CODE BEGIN 2 */
+#if ENABLE_AFE
     afedrv_init();
+#endif  // ENABLE_CAN
 #if ENABLE_CAN
     dronecan_init();
 #endif    // ENABLE_CAN
+#if ENABLE_BCF
     bcf_init();
+#endif  // ENABLE_BCF
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -159,13 +165,17 @@ int main(void)
 
         if (runnable_10ms_cnt > 0) runnable_10ms_cnt--;
         if (runnable_10ms_cnt == 0) {
+#if ENABLE_AFE
             afedrv_runnable_10ms();
+#endif  // ENABLE_AFE
             runnable_10ms_cnt = 10;
         }
 
         if (runnable_100ms_cnt > 0) runnable_100ms_cnt--;
         if (runnable_100ms_cnt == 0) {
+#if ENABLE_BCF
             bcf_100ms();
+#endif  // ENABLE_BCF
             runnable_100ms_cnt = 100;
         }
 
