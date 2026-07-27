@@ -72,6 +72,11 @@ target_include_directories(${PROJECT_NAME}
     ${LIBCANARD_INC}
     ${DRONECAN_INC}
     ${LIBCANARD_INC}/drivers/stm32
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/USB_DEVICE/App
+    ${CMAKE_CURRENT_SOURCE_DIR}/USB_DEVICE/Target
 )
 
 # target_link_directories(${PROJECT_NAME}

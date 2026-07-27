@@ -24,14 +24,18 @@
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
-#include "usb_otg.h"
+#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
 #include "afedrv.h"
 #include "bcf.h"
 #include "dronecan.h"
+#include "logger.h"
 #include "util.h"
+#include "monitor.h"
+#include "logger.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,9 +46,9 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define ENABLE_CAN 0
-#define ENABLE_AFE 0
-#define ENABLE_BCF 0
+#define ENABLE_CAN 1
+#define ENABLE_AFE 1
+#define ENABLE_BCF 1
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -121,20 +125,20 @@ int main(void)
     MX_DMA_Init();
     MX_CAN1_Init();
     MX_USART3_UART_Init();
-    MX_USB_OTG_FS_PCD_Init();
     MX_TIM2_Init();
     MX_SPI1_Init();
+    MX_USB_DEVICE_Init();
     /* USER CODE BEGIN 2 */
 #if ENABLE_AFE
     afedrv_init();
-#endif  // ENABLE_CAN
+#endif    // ENABLE_CAN
 #if ENABLE_CAN
     dronecan_init();
 #endif    // ENABLE_CAN
 #if ENABLE_BCF
     bcf_init();
-#endif  // ENABLE_BCF
-    /* USER CODE END 2 */
+#endif    // ENABLE_BCF
+          /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
@@ -167,7 +171,9 @@ int main(void)
         if (runnable_10ms_cnt == 0) {
 #if ENABLE_AFE
             afedrv_runnable_10ms();
-#endif  // ENABLE_AFE
+#endif    // ENABLE_AFE
+            monitor_update_10ms();
+            logger_send_data_usb_10ms();
             runnable_10ms_cnt = 10;
         }
 
@@ -175,7 +181,7 @@ int main(void)
         if (runnable_100ms_cnt == 0) {
 #if ENABLE_BCF
             bcf_100ms();
-#endif  // ENABLE_BCF
+#endif    // ENABLE_BCF
             runnable_100ms_cnt = 100;
         }
 

@@ -25,11 +25,11 @@ void bcf_100ms(void)
 static void bcf_update_bat_info_from_rte(void)
 {
     for (uint8_t cell_id = 0; cell_id < AFEDRV_CELL_CNT; cell_id++) {
-        bat_info.cell_V[cell_id] = rte_afedrv_meas_res.cell_mV[cell_id] / 1000.0f;
+        bat_info.cell_V[cell_id] = rte_monitor_data.cell_V[cell_id];
     }
-    bat_info.current_A = rte_afedrv_meas_res.curr_from_cc_mA / 1000.0f;
-    bat_info.stack_V = rte_afedrv_meas_res.stack_mV / 1000.0f;
-    bat_info.bat_temp_degC = rte_afedrv_meas_res.an1_ddegC / 10.0f;
+    bat_info.current_A = rte_monitor_data.current_A;
+    bat_info.stack_V = rte_monitor_data.stack_V;
+    bat_info.bat_temp_degC = rte_monitor_data.bat_temp_degC;
 }
 
 static void bcf_update_bat_info_to_rte(void)
